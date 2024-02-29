@@ -1,0 +1,201 @@
+---
+title: "Figure 7.1 - CytoDX example"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{condor_workflow}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup}
+library(condor)
+library(ggplot2)
+library(ggpubr)
+```
+
+# Loading the data - Training Set
+
+```{r}
+condor <- prep_fcd(FCSpath = "/home/user/data/Data/Figure 7 - Clinical Classifier/data_and_envs/CytoDX/", 
+                    ceil = 10000000, 
+                    useCSV = FALSE, 
+                    transformation = "a", 
+                    remove_param = c("FSC-A","FSC-W","FSC-H","Time", "InFile"), 
+                    anno_table = "/home/user/data/Data/Figure 7 - Clinical Classifier/data_and_envs/CytoDX/fcs_info_train.csv", 
+                    filename_col = "fcsName",
+                    seed = 91)
+```
+
+```{r}
+class(condor)
+```
+
+## Visualize the data on a UMAP
+```{r}
+condor <- runPCA(fcd = condor, 
+                 data_slot = "orig", 
+                 seed = 91)
+```
+
+```{r}
+condor <- runUMAP(fcd = condor, 
+                  input_type = "pca", 
+                  data_slot = "orig", 
+                  seed = 91)
+```
+
+```{r}
+plot_marker(data = cbind(condor$umap$pca_orig, condor$anno$cell_anno), 
+            param = "Label", 
+            order = T, 
+            title = "Figure 7b - UMAP training data", 
+            dim_red = "UMAP", 
+            facet_by_variable = FALSE, dot_size = 1, apha = 1, color_discrete = c("#92278F", "#F15A29"))
+```
+
+## Build the classifier model
+```{r}
+# Re order variables
+
+condor$anno$cell_anno$Label <- factor(condor$anno$cell_anno$Label, levels = c("normal", "aml"), labels = c("1_normal", "2_aml"))
+```
+
+
+```{r}
+condor <- train_classifier_model(fcd = condor, 
+                                 input_type = "expr", 
+                                 data_slot = "orig", 
+                                 sample_names = "expfcs_filename", 
+                                 classification_variable = condor$anno$cell_anno$Label, 
+                                 family = "binomial", 
+                                 type1 = "response", 
+                                 parallelCore = 1, 
+                                 reg = FALSE, 
+                                 seed = 91)
+```
+
+### Explore the model
+```{r}
+condor$extras$classifier_model$train.Data.sample
+
+condor$extras$classifier_model$train.Data.cell
+```
+
+
+# Load the data - test Set
+
+```{r}
+condor_test <- prep_fcd(FCSpath = "/home/user/data/Data/Figure 7 - Clinical Classifier/data_and_envs/CytoDX/", 
+                    ceil = 10000000, 
+                    useCSV = FALSE, 
+                    transformation = "a", 
+                    remove_param = c("FSC-A","FSC-W","FSC-H","Time", "InFile"), 
+                    anno_table = "/home/user/data/Data/Figure 7 - Clinical Classifier/data_and_envs/CytoDX/fcs_info_test.csv", 
+                    filename_col = "fcsName",
+                    seed = 91)
+```
+
+```{r}
+class(condor_test)
+```
+
+## Predict classification
+```{r}
+# Re order variables
+
+condor_test$anno$cell_anno$Label <- factor(condor_test$anno$cell_anno$Label, levels = c("normal", "aml"), labels = c("1_normal", "2_aml"))
+```
+
+```{r}
+condor_test <- predict_classifier(fcd = condor_test, 
+                                  input_type = "expr", 
+                                  data_slot = "orig", 
+                                  sample_names = "expfcs_filename", 
+                                  model_object = condor$extras$classifier_model, 
+                                  seed = 91)
+```
+
+### Explore Prediction
+```{r}
+condor_test$extras$classifier_prediction$xNew.Pred.sample
+
+condor_test$extras$classifier_prediction$xNew.Pred.cell
+```
+
+# Visualize the results
+
+## Training Data
+```{r}
+anno <- read.csv("/home/user/data/Data/Figure 7 - Clinical Classifier/data_and_envs/CytoDX/fcs_info_train.csv")
+
+tmp <- merge(x = condor$extras$classifier_model$train.Data.cell, y = anno, by.x = "sample", by.y = "fcsName")
+
+ggplot(tmp, aes(x = sample, y = y.Pred.s0, color = Label)) +
+  geom_jitter() + 
+  geom_violin() +
+  scale_color_manual(values = c("#92278F", "#F15A29")) +
+  theme_bw() + 
+  theme(aspect.ratio = 1) + 
+  ggtitle("Figure S12b - Training prediction cell")
+```
+
+```{r}
+tmp <- merge(x = condor$extras$classifier_model$train.Data.sample, y = anno, by.x = "sample", by.y = "fcsName")
+
+ggplot(tmp, aes(x = sample, y = y.Pred.s0, color = Label)) +
+  geom_point(size = 4) +
+  scale_color_manual(values = c("#92278F", "#F15A29")) +
+  theme_bw() + 
+  theme(aspect.ratio = 2) + 
+  ggtitle("Figure S12c - Training prediction sample")
+```
+
+## Test Data
+```{r}
+anno <- read.csv("/home/user/data/Data/Figure 7 - Clinical Classifier/data_and_envs/CytoDX/fcs_info_test.csv")
+
+tmp <- merge(x = condor_test$extras$classifier_prediction$xNew.Pred.cell, y = anno, by.x = "sample", by.y = "fcsName")
+
+tmp$sample <- factor(tmp$sample, levels = c("sample1.fcs", "sample2.fcs", "sample3.fcs",  "sample4.fcs",  "sample5.fcs",  "sample6.fcs",  "sample7.fcs",  "sample8.fcs",  "sample9.fcs", "sample10.fcs"))
+
+ggplot(tmp, aes(x = sample, y = y.Pred.s0, color = Label)) +
+  geom_jitter() +
+  geom_violin() +
+  scale_color_manual(values = c("#92278F", "#F15A29")) +
+  theme_bw() + 
+  theme(aspect.ratio = 1) + 
+  ggtitle("Figure 7c - Test prediction cell")
+```
+
+```{r}
+tmp <- merge(x = condor_test$extras$classifier_prediction$xNew.Pred.sample, y = anno, by.x = "sample", by.y = "fcsName")
+
+tmp$sample <- factor(tmp$sample, levels = c("sample1.fcs", "sample2.fcs", "sample3.fcs",  "sample4.fcs",  "sample5.fcs",  "sample6.fcs",  "sample7.fcs",  "sample8.fcs",  "sample9.fcs", "sample10.fcs"))
+
+ggplot(tmp, aes(x = sample, y = y.Pred.s0, color = Label)) +
+  geom_point(size = 4) +
+  scale_color_manual(values = c("#92278F", "#F15A29")) +
+  theme_bw() + 
+  theme(aspect.ratio = 2) + 
+  ggtitle("Figure 7d - Test prediction sample")
+```
+
+# Visualization of the decision three
+```{r}
+# Figure S12d - Decision tree
+
+library(CytoDx)
+
+treeGate(P = condor$extras$classifier_model$train.Data.cell$y.Pred.s0,
+         x= condor$expr$orig)
+```
+
+# Session Info
+```{r}
+info <- sessionInfo()
+
+info
+```

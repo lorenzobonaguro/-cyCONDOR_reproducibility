@@ -1,0 +1,11 @@
+fcsName,Label,dataset
+sample11.fcs,aml,train
+sample12.fcs,aml,train
+sample13.fcs,aml,train
+sample14.fcs,aml,train
+sample15.fcs,aml,train
+sample16.fcs,normal,train
+sample17.fcs,normal,train
+sample18.fcs,normal,train
+sample19.fcs,normal,train
+sample20.fcs,normal,train

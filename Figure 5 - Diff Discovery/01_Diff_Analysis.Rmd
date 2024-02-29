@@ -1,0 +1,240 @@
+---
+title: "Figure 2.1 - Prepare Data Annotation"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{condor_workflow}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(condor)
+library(ggplot2)
+library(ggsci)
+library(dplyr)
+library(ggrastr)
+library(ggrastr)
+library(ggpubr)
+```
+
+```{r}
+cluster_palette <- c("#89C5DA", "#DA5724", "#74D944", "#CE50CA", "#3F4921", "#C0717C", "#CBD588", "#5F7FC7",
+                     "#673770", "#D3D93E", "#38333E", "#508578", "#D7C1B1", "#689030", "#AD6F3B", "#CD9BCD",
+                     "#D14285", "#6DDE88", "#652926", "#7FDCC0", "#C84248", "#8569D5", "#5E738F", "#D1A33D",
+                     "#8A7C64", "#599861", "#89C5DA", "#DA5724", "#74D944", "#CE50CA", "#3F4921", "#C0717C", "#CBD588", "#5F7FC7",
+                     "#673770", "#D3D93E", "#38333E", "#508578", "#D7C1B1", "#689030", "#AD6F3B", "#CD9BCD",
+                     "#D14285", "#6DDE88", "#652926", "#7FDCC0", "#C84248", "#8569D5", "#5E738F", "#D1A33D",
+                     "#8A7C64", "#599861")
+```
+
+# Loading the data
+
+```{r}
+condor <- prep_fcd(FCSpath = "/home/user/data/Data/Package/condor/.test_files/fcs/", 
+                    ceil = 10000, 
+                    useCSV = FALSE, 
+                    transformation = "a", 
+                    remove_param = c("FSC-H", "SSC-H", "FSC-W", "SSC-W", "Time", "InFile", "live_dead"), 
+                    anno_table = "/home/user/data/Data/Figure 2 - Example Workflow/data/FC_metadata.csv", 
+                    filename_col = "filename",
+                    seed = 91)
+```
+
+```{r}
+class(condor)
+```
+
+# Dimensionality Reduction
+
+## PCA
+```{r}
+condor <- runPCA(fcd = condor, 
+                 data_slot = "orig", 
+                 seed = 91)
+```
+
+## UMAP
+```{r}
+condor <- runUMAP(fcd = condor, 
+                  input_type = "pca", 
+                  data_slot = "orig", 
+                  seed = 91)
+```
+
+# Clustering
+
+## Phenograph
+```{r}
+condor <- runPhenograph(fcd = condor, 
+                        input_type = "pca", 
+                        data_slot = "orig", 
+                        k = 60, 
+                        seed = 91)
+```
+
+```{r}
+plot_marker(data = cbind(condor$umap$pca_orig, condor$clustering$Phenograph_pca_orig_k_60), 
+            param = "Phenograph", 
+            order = T, 
+            title = "Figure S7b - UMAP Phenograph Clustering", 
+            dim_red = "UMAP", 
+            facet_by_variable = FALSE)
+```
+
+```{r}
+data <- cbind(condor$umap$pca_orig, condor$anno$cell_anno, condor$clustering$Phenograph_pca_orig_k_60)
+```
+
+```{r}
+ggplot(data = data, aes(x = UMAP1, y = UMAP2, color = Phenograph)) +
+  geom_point_rast(alpha = 0.2, size = 0.1) +
+  theme_bw() +
+  theme(aspect.ratio = 1, panel.grid = element_blank()) +
+  scale_color_manual(values = cluster_palette) + 
+  guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) + 
+  ggtitle("Figure S7b - UMAP Phenograph Clustering")
+```
+
+# Metaclustering
+
+```{r}
+condor <- metaclustering(fcd = condor, 
+                         clustering = "Phenograph_pca_orig_k_60", 
+                         name_col = "Phenograph", 
+                         name_out = "metaclusters", 
+                         metaclusters = c("1" = "Classical Monocytes", 
+                                          "2" = "B cells", 
+                                          "3" = "CD8", 
+                                          "4" = "CD8", 
+                                          "5" = "NK bright", 
+                                          "6" = "CD8", 
+                                          "7" = "CD4", 
+                                          "8" = "CD8", 
+                                          "9" = "CD4", 
+                                          "10" = "CD16+ Monocytes", 
+                                          "11" = "CD4", 
+                                          "12" = "NKT", 
+                                          "13" = "NK dim",
+                                          "14" = "Classical Monocytes",
+                                          "15" = "pDCs",
+                                          "16" = "Classical Monocytes",
+                                          "17" = "Classical Monocytes",
+                                          "18" = "CD4",
+                                          "19" = "NKT",
+                                          "20" = "CD8",
+                                          "21" = "Basophils",
+                                          "22" = "CD8",
+                                          "23" = "NK bright"))
+```
+
+```{r}
+plot_marker(data = cbind(condor$umap$pca_orig, condor$clustering$Phenograph_pca_orig_k_60), 
+            param = "metaclusters", 
+            order = T, 
+            title = "Figure 5b - UMAP Metaclusters", 
+            dim_red = "UMAP", 
+            facet_by_variable = FALSE)
+```
+
+```{r}
+data <- cbind(condor$umap$pca_orig, condor$anno$cell_anno, condor$clustering$Phenograph_pca_orig_k_60)
+```
+
+```{r}
+ggplot(data = data, aes(x = UMAP1, y = UMAP2, color = metaclusters)) +
+  geom_point_rast(alpha = 0.2, size = 0.1) +
+  theme_bw() +
+  theme(aspect.ratio = 1, panel.grid = element_blank()) +
+  scale_color_manual(values = cluster_palette) + 
+  guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) + ggtitle("Figure 5b - UMAP Metaclusters")
+```
+
+# Differential reppresentation
+
+```{r, fig.width=15, fig.height=3}
+confusion_HM(variables = condor$clustering$Phenograph_pca_orig_k_60$Phenograph, 
+             group = condor$anno$cell_anno$group, size = 30, 
+             title = "Figure S7c - Confusion Matrix - Phenograph K60")
+```
+
+```{r, fig.width=15, fig.height=3}
+confusion_HM(variables = condor$clustering$Phenograph_pca_orig_k_60$metaclusters, 
+             group = condor$anno$cell_anno$group, size = 30, 
+             title = "Figure 5c - Confusion Matrix - Metaclusters")
+```
+
+```{r}
+barplot_frequency(x_axes = condor$anno$cell_anno$group, 
+                  colour = condor$clustering$Phenograph_pca_orig_k_60$Phenograph, 
+                  title = "Stacked barplot of cluster frequencies", 
+                  legend_title = "Figure S7d - Phenograph Cluster - k60") + theme(aspect.ratio = 2)
+```
+
+```{r}
+barplot_frequency(x_axes = condor$anno$cell_anno$group, 
+                  colour = condor$clustering$Phenograph_pca_orig_k_60$metaclusters, 
+                  title = "Stacked barplot of cluster frequencies", 
+                  legend_title = "Figure 5d - Metaclusters") + theme(aspect.ratio = 2)
+```
+
+```{r, fig.width=20, fig.height=20}
+# Figure S7e
+
+box_stat <- boxplot_and_stats(annotation = condor$anno$cell_anno, 
+                              sample_var = "sample_ID", 
+                              group_var = "group", 
+                              variable = condor$clustering$Phenograph_pca_orig_k_60$Phenograph, 
+                              numeric = FALSE, 
+                              test.type = "t.test")
+
+ggarrange(plotlist = box_stat$plot, legend = "none")
+```
+
+```{r, fig.width=10, fig.height=10}
+# Figure 5e
+
+box_stat <- boxplot_and_stats(annotation = condor$anno$cell_anno, 
+                              sample_var = "sample_ID", 
+                              group_var = "group", 
+                              variable = condor$clustering$Phenograph_pca_orig_k_60$metaclusters, 
+                              numeric = FALSE, 
+                              test.type = "t.test")
+
+ggarrange(plotlist = box_stat$plot, legend = "none")
+```
+
+# Differential expression
+```{r, fig.width=20, fig.height=8}
+HM_differential_marker(fcd = condor, 
+                       data_slot = "orig", 
+                       cluster_method = "Phenograph_pca_orig_k_60", 
+                       cluster_type = "Phenograph", 
+                       group_by = "group",
+                       title = "Figure S8a - Marker expression per cluster and phenograph cluster")
+```
+
+```{r, fig.width=20, fig.height=8}
+HM_differential_marker(fcd = condor, 
+                       data_slot = "orig", 
+                       cluster_method = "Phenograph_pca_orig_k_60", 
+                       cluster_type = "metaclusters", 
+                       group_by = "group",
+                       title = "Figure 5f - Marker expression per cluster and group")
+```
+
+# Session Info
+```{r}
+info <- sessionInfo()
+
+info
+```

@@ -1,0 +1,222 @@
+---
+title: "Figure 7.2 - FlowCapII perfromances"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{condor_workflow}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup}
+library(condor, quietly = TRUE)
+```
+
+# Loading the metadata from the FlowCAP II dataset
+```{r}
+FCII_meta <- read.csv("../Datasets/FC_FlowCapII_FR-FCM-ZZYA/.attachments/AML.csv")
+
+FCII_meta$FCS.file <- stringr::str_replace(string = FCII_meta$FCS.file, pattern = ".FCS", replacement = ".fcs")
+```
+
+# Running the loop for the predicion performances
+
+## Preparing the collectors
+```{r, warning=FALSE}
+# First collector for the prediction values
+collector <- list()
+
+# Second collector for the performance values
+table_collector <- matrix(ncol = 9, nrow = 0)
+
+colnames(table_collector) <- c("P", "TP", "FP", "N", "TN", "FN", "SENS", "SPEC", "ACC")
+```
+
+## Running the loop
+```{r, warning=FALSE}
+# Now running the loops with a seed going from 1 to 100
+for (i in seq(1,100)) {
+  
+  print(i)
+  
+  # Set the seed 
+  set.seed(i)
+  
+  # Select the sample for the train dataset (80%)
+  train_sample <- sample(unique(FCII_meta$Individual), 
+                         size = round(length(unique(FCII_meta$Individual))*0.8), 
+                         replace = FALSE)
+  # Select sample for the test dataset (remaining 20%)
+  test_sample <- unique(FCII_meta$Individual)[!unique(FCII_meta$Individual) %in% train_sample]
+
+  # Exctract sample name and save the annotation file
+  FCII_list <- list()
+
+  for (pannel in unique(FCII_meta$Tube.number)) {
+  
+    df <- FCII_meta[FCII_meta$Tube.number == pannel,]
+  
+    df_train <- df[df$Individual %in% train_sample,]
+    
+    # Check number of aml in train data
+    n_aml <- sum(df_train$Condition == "aml")
+    n_normal <- sum(df_train$Condition == "normal")
+    
+    # Balance the train dataset
+    diff <- n_normal - n_aml
+  
+    df_train <- df_train[!df_train$FCS.file %in% sample(df_train[df_train$Condition == "normal",]$FCS.file, size = diff, replace = FALSE), ]
+    
+    df_test <- df[df$Individual %in% test_sample,]
+  
+    FCII_list[[paste("pannel_", pannel, sep = "")]][["train"]] <- df_train
+  
+    FCII_list[[paste("pannel_", pannel, sep = "")]][["test"]] <- df_test
+  
+  }
+
+  for (pannel in names(FCII_list)) {
+
+    tmp <- FCII_list[[pannel]]
+
+    for (df in names(tmp)) {
+
+      write.csv(file = paste("./data_and_envs/FlowCapII/", pannel, "_", df, ".csv", sep = ""), x = tmp[[df]], row.names = FALSE)
+
+    }
+
+  }
+
+  # Prepare CONDOR object on the train dataset
+  condor <- prep_fcd(FCSpath = "./data_and_envs/Pannel_4/", 
+                     ceil = 3000, 
+                     useCSV = FALSE, 
+                     transformation = "a", 
+                     remove_param = c("Time", "InFile"), 
+                     anno_table = "./data_and_envs/FlowCapII/pannel_4_train.csv", 
+                     filename_col = "FCS.file",
+                     seed = 91)
+  
+  # Re order the variable to have the prediction for AML
+  condor$anno$cell_anno$Condition <- factor(condor$anno$cell_anno$Condition, 
+                                            levels = c("normal", "aml"), labels = c("1_normal", "2_aml"))
+
+  
+  # Train classifier on the training data
+  condor <- train_classifier_model(fcd = condor, 
+                                   input_type = "expr", 
+                                   data_slot = "orig", 
+                                   sample_names = "expfcs_filename", 
+                                   classification_variable = condor$anno$cell_anno$Condition, 
+                                   family = "binomial", 
+                                   type1 = "response", 
+                                   parallelCore = 1, 
+                                   reg = FALSE, 
+                                   seed = 91)
+
+  # Load test data in a condor object
+  condor_test <- prep_fcd(FCSpath = "./data_and_envs/Pannel_4/", 
+                          ceil = 3000, 
+                          useCSV = FALSE, 
+                          transformation = "a", 
+                          remove_param = c("Time", "InFile"), 
+                          anno_table = "./data_and_envs/FlowCapII/pannel_4_test.csv", 
+                          filename_col = "FCS.file",
+                          seed = 91)
+
+  condor_test$anno$cell_anno$Condition <- factor(condor_test$anno$cell_anno$Condition, 
+                                                 levels = c("normal", "aml"), labels = c("1_normal", "2_aml"))
+
+  # Predict the label of the test dataset
+  condor_test <- predict_classifier(fcd = condor_test, 
+                                    input_type = "expr", 
+                                    data_slot = "orig", 
+                                    sample_names = "expfcs_filename", 
+                                    model_object = condor$extras$classifier_model, 
+                                    seed = 91)
+
+  # Merge result with original annotation
+  anno <- read.csv("./data_and_envs/FlowCapII/pannel_4_test.csv")
+
+  tmp <- merge(x = condor_test$extras$classifier_prediction$xNew.Pred.sample, y = anno, by.x = "sample", by.y = "FCS.file")
+
+  # Include a column with the predicted labels (according to a probability of 50%)
+  tmp$Pred <- ifelse(tmp$y.Pred.s0 >= 0.5, "pred_aml", "pred_normal")
+
+  tmp <- tmp[, c("sample", "Condition", "Pred", "y.Pred.s0")]
+
+  # Store the results in a list
+  collector[[paste0("Pred_seed_", i)]] <- tmp
+  
+  table <- table(tmp$Condition, tmp$Pred)
+  
+  # Calculate performance parameters
+  P <- sum(table[1,1] + table[1,2]) # Total positive samples
+  TP <- table[1,1] # True positive prediction
+  FP <- table[2,1] # False positive prediction
+  
+  N <- sum(table[2,1] + table[2,2]) # Total negative samples
+  TN <- table[2,2] # True negative prediction
+  FN <- table[1,2] # False negative prediction
+  
+  SENS <- TP/P # Sensitivity
+  SPEC <- ifelse(N > 0, TN/N, 0) # Specificity
+  ACC <- (TP+TN)/(TP+FP+FN+TN) # Accuracy
+  
+  # Store the perfromacne data in a table
+  table_collector <- rbind(table_collector, c(P, TP, FP, N, TN, FN, SENS, SPEC, ACC))
+
+  # Clean
+  rm(anno, condor, condor_test, df_test, df_train, FCII_list, tmp, ACC, df, FN, FP, i, N, P, pannel,
+     SENS, SPEC, table, test_sample, TN, TP, train_sample)
+  
+  # Do a garbage collection to avoid overload of systems memory
+  gc()
+  
+}
+```
+
+## Save output
+```{r}
+saveRDS(collector, file = "./data_and_envs/loop_output/loop_output_probability_balanced.R")
+
+saveRDS(table_collector, file = "./data_and_envs/loop_output/loop_stats_balanced.R")
+```
+
+## Load output
+```{r}
+collector <- readRDS("./data_and_envs/loop_output/loop_output_probability_balanced.R")
+
+table_collector <- readRDS("./data_and_envs/loop_output/loop_stats_balanced.R")
+```
+
+## Stats visualization
+```{r}
+library(reshape2)
+
+df <- melt(as.data.frame(table_collector[, c(7,8,9)]))
+
+df$variable <- factor(df$variable, levels = c("ACC", "SPEC", "SENS"))
+```
+
+```{r}
+library(ggplot2)
+library(ggsci)
+
+ggplot(df, aes(x = variable, y = value, fill = variable)) +
+  geom_boxplot(outlier.shape = NA) + scale_y_continuous(limits = c(0.5, 1.01)) +
+  geom_jitter(width = 0.2, alpha = 0.3, size = 2) + 
+  scale_fill_aaas() +
+  theme_bw() + 
+  theme(aspect.ratio = 2) + 
+  ggtitle("Figure 7e - FlowCapII performance")
+```
+
+# Session Info
+```{r}
+info <- sessionInfo()
+
+info
+```

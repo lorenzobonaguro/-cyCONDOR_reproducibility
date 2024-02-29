@@ -1,0 +1,342 @@
+---
+title: "Figure 3.1 - Batch correction workflow"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{condor_workflow}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(condor)
+library(ggplot2)
+library(ggsci)
+library(dplyr)
+library(ggrastr)
+```
+
+```{r}
+cluster_palette <- c("#89C5DA", "#DA5724", "#74D944", "#CE50CA", "#3F4921", "#C0717C", "#CBD588", "#5F7FC7",
+                     "#673770", "#D3D93E", "#38333E", "#508578", "#D7C1B1", "#689030", "#AD6F3B", "#CD9BCD",
+                     "#D14285", "#6DDE88", "#652926", "#7FDCC0", "#C84248", "#8569D5", "#5E738F", "#D1A33D",
+                     "#8A7C64", "#599861", "#89C5DA", "#DA5724", "#74D944", "#CE50CA", "#3F4921", "#C0717C", 
+                     "#CBD588", "#5F7FC7", "#673770", "#D3D93E", "#38333E", "#508578", "#D7C1B1", "#689030", 
+                     "#AD6F3B", "#CD9BCD", "#D14285", "#6DDE88", "#652926", "#7FDCC0", "#C84248", "#8569D5", 
+                     "#5E738F", "#D1A33D", "#8A7C64", "#599861")
+```
+
+
+# Loading the data
+```{r}
+condor <- prep_fcd(FCSpath = "./data/CureDem/all/", 
+                   ceil = 5000, 
+                   useCSV = FALSE, 
+                   transformation = "a", 
+                   remove_param = c("InFile", "Time"), 
+                   anno_table = "./data/CureDem/all.csv", 
+                   filename_col = "filename",
+                   seed = 91)
+```
+
+# Dimensionality Reduction
+
+## PCA
+```{r}
+condor <- runPCA(fcd = condor, 
+                 data_slot = "orig", 
+                 seed = 91)
+```
+
+## UMAP
+```{r}
+condor <- runUMAP(fcd = condor, 
+                  input_type = "pca", 
+                  data_slot = "orig", 
+                  seed = 91)
+```
+
+```{r}
+plot_marker(data = cbind(condor$umap$pca_orig, condor$anno$cell_anno), 
+            param = "exp", 
+            order = T, 
+            title = "Figure 3b - UMAP by group", 
+            dim_red = "UMAP", 
+            facet_by_variable = FALSE, 
+            color_discrete = c("#1C75BC", "#BE1E2D", "#8DC63F", "#92278F", "#F15A29"))
+
+plot_marker(data = cbind(condor$umap$pca_orig, condor$anno$cell_anno), 
+            param = "exp", 
+            order = T, 
+            title = "Figure 3b - UMAP splitted by group", 
+            dim_red = "UMAP", 
+            facet_by_variable = TRUE, 
+            color_discrete = c("#1C75BC", "#BE1E2D", "#8DC63F", "#92278F", "#F15A29"))
+```
+
+```{r}
+data <- cbind(condor$umap$pca_orig, condor$anno$cell_anno)
+```
+
+```{r}
+ggplot(data = data, aes(x = UMAP1, y = UMAP2, color = exp)) +
+  geom_point_rast(alpha = 0.2, size = 0.1) +
+  theme_bw() +
+  theme(aspect.ratio = 1, panel.grid = element_blank()) +
+  scale_color_manual(values = c("#1C75BC", "#BE1E2D", "#8DC63F", "#92278F", "#F15A29")) + 
+  guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) + 
+  ggtitle("Figure 3b - UMAP by group")
+```
+
+```{r}
+ggplot(data = data, aes(x = UMAP1, y = UMAP2, color = exp)) +
+  geom_point_rast(alpha = 0.2, size = 0.1) +
+  theme_bw() +
+  theme(aspect.ratio = 1, panel.grid = element_blank()) +
+  scale_color_manual(values = c("#1C75BC", "#BE1E2D", "#8DC63F", "#92278F", "#F15A29")) + 
+  guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) + facet_wrap(~exp) + 
+  ggtitle("Figure 3b - UMAP splitted by group")
+```
+
+# Batch correction
+
+## Correct intensities
+```{r}
+condor <- harmonize_intensities(fcd = condor, 
+                                batch = c("exp"), 
+                                seed = 91)
+```
+
+```{r}
+condor <- harmonize_PCA(fcd = condor, 
+                        batch = c("exp"), 
+                        data_slot = "orig", 
+                        seed = 91)
+```
+
+```{r}
+condor <- runUMAP(fcd = condor, 
+                  input_type = "pca", 
+                  data_slot = "norm", 
+                  seed = 91)
+```
+
+```{r}
+plot_marker(data = cbind(condor$umap$pca_norm, condor$anno$cell_anno), 
+            param = "exp", 
+            order = T, 
+            title = "Figure 3d - UMAP by group", 
+            dim_red = "UMAP", 
+            facet_by_variable = FALSE, color_discrete = c("#1C75BC", "#BE1E2D", "#8DC63F", "#92278F", "#F15A29"))
+
+plot_marker(data = cbind(condor$umap$pca_norm, condor$anno$cell_anno), 
+            param = "exp", 
+            order = T, 
+            title = "Figure 3d - UMAP splitted by group", 
+            dim_red = "UMAP", 
+            facet_by_variable = TRUE, color_discrete = c("#1C75BC", "#BE1E2D", "#8DC63F", "#92278F", "#F15A29"))
+```
+
+```{r}
+data <- cbind(condor$umap$pca_norm, condor$anno$cell_anno)
+```
+
+```{r}
+ggplot(data = data, aes(x = UMAP1, y = UMAP2, color = exp)) +
+  geom_point_rast(alpha = 0.2, size = 0.1) +
+  theme_bw() +
+  theme(aspect.ratio = 1, panel.grid = element_blank()) +
+  scale_color_manual(values = c("#1C75BC", "#BE1E2D", "#8DC63F", "#92278F", "#F15A29")) + 
+  guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) + 
+  ggtitle("Figure 3d - UMAP by group")
+```
+
+```{r}
+ggplot(data = data, aes(x = UMAP1, y = UMAP2, color = exp)) +
+  geom_point_rast(alpha = 0.2, size = 0.1) +
+  theme_bw() +
+  theme(aspect.ratio = 1, panel.grid = element_blank()) +
+  scale_color_manual(values = c("#1C75BC", "#BE1E2D", "#8DC63F", "#92278F", "#F15A29")) + 
+  guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) + facet_wrap(~exp) + 
+  ggtitle("Figure 3d - UMAP splitted by group")
+```
+
+# Clustering
+```{r}
+condor <- runPhenograph(fcd = condor,
+                        input_type = "pca",
+                        data_slot = "orig",
+                        k = 60,
+                        seed = 91)
+```
+
+```{r}
+plot_marker(data = cbind(condor$umap$pca_orig, condor$anno$cell_anno, condor$clustering$Phenograph_pca_orig_k_60), 
+            param = "Phenograph", 
+            order = T, 
+            title = "Figure 3c - UMAP by Phenograph", 
+            dim_red = "UMAP", 
+            facet_by_variable = FALSE, color_discrete = cluster_palette)
+```
+
+```{r}
+data <- cbind(condor$umap$pca_orig, condor$anno$cell_anno, condor$clustering$Phenograph_pca_orig_k_60)
+```
+
+```{r}
+ggplot(data = data, aes(x = UMAP1, y = UMAP2, color = Phenograph)) +
+  geom_point_rast(alpha = 0.2, size = 0.1) +
+  theme_bw() +
+  theme(aspect.ratio = 1, panel.grid = element_blank()) +
+  scale_color_manual(values = cluster_palette) + 
+  guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) + 
+  ggtitle("Figure 3c - UMAP by Phenograph")
+```
+
+```{r, fig.width= 13}
+cells_cluster <- confusionMatrix(paste0(condor$clustering$Phenograph_pca_orig_k_60$Phenograph), 
+                                 paste0(condor$anno$cell_anno$exp))
+cells_cluster <- cells_cluster[order(factor(rownames(cells_cluster), levels = c(0:nrow(cells_cluster)))), ]
+cells_cluster <- cells_cluster[, order(colnames(cells_cluster))]
+cells_cluster <- as.matrix(cells_cluster)
+
+tmp <- round(t(t(cells_cluster)/colSums(cells_cluster)) * 1000, 3)
+
+scaled_cM <- round((tmp/Matrix::rowSums(tmp)) * 100, 2)
+
+scaled_cM <- rbind(scaled_cM, c(93, 0,0,0,0))
+
+pheatmap::pheatmap(mat = t(scaled_cM), border_color = "black", 
+        display_numbers = TRUE, cluster_rows = FALSE, cluster_cols = FALSE, 
+        cellwidth = 30, cellheight = 30, main = "Figure S4c - Confusion - before match correction")
+```
+
+```{r}
+condor <- runPhenograph(fcd = condor,
+                        input_type = "pca",
+                        data_slot = "norm",
+                        k = 60,
+                        seed = 91)
+```
+
+```{r}
+plot_marker(data = cbind(condor$umap$pca_norm, condor$anno$cell_anno, condor$clustering$Phenograph_pca_norm_k_60), 
+            param = "Phenograph", 
+            order = T, 
+            title = "Figure 3e - UMAP by group", 
+            dim_red = "UMAP", 
+            facet_by_variable = FALSE, color_discrete = rev(cluster_palette))
+```
+
+```{r}
+data <- cbind(condor$umap$pca_norm, condor$anno$cell_anno, condor$clustering$Phenograph_pca_norm_k_60)
+```
+
+```{r}
+ggplot(data = data, aes(x = UMAP1, y = UMAP2, color = Phenograph)) +
+  geom_point_rast(alpha = 0.2, size = 0.1) +
+  theme_bw() +
+  theme(aspect.ratio = 1, panel.grid = element_blank()) +
+  scale_color_manual(values = rev(cluster_palette)) + 
+  guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) + 
+  ggtitle("Figure 3e - UMAP by group")
+```
+
+```{r, fig.width=13}
+cells_cluster <- confusionMatrix(paste0(condor$clustering$Phenograph_pca_norm_k_60$Phenograph), 
+                                 paste0(condor$anno$cell_anno$exp))
+cells_cluster <- cells_cluster[order(factor(rownames(cells_cluster), levels = c(0:nrow(cells_cluster)))), ]
+cells_cluster <- cells_cluster[, order(colnames(cells_cluster))]
+cells_cluster <- as.matrix(cells_cluster)
+
+tmp <- round(t(t(cells_cluster)/colSums(cells_cluster)) * 1000, 3)
+
+scaled_cM <- round((tmp/Matrix::rowSums(tmp)) * 100, 2)
+
+scaled_cM <- rbind(scaled_cM, c(93, 0,0,0,0))
+
+pheatmap::pheatmap(mat = t(scaled_cM), border_color = "black", 
+        display_numbers = TRUE, cluster_rows = FALSE, cluster_cols = FALSE, 
+        cellwidth = 30, cellheight = 30, main = "Figure S4d - Confusion after batch correction")
+```
+
+
+```{r, fig.width=13}
+cells_cluster <- confusionMatrix(paste0(condor$clustering$Phenograph_pca_norm_k_60$Phenograph), 
+                                 paste0(condor$anno$cell_anno$expfcs_filename))
+cells_cluster <- cells_cluster[order(factor(rownames(cells_cluster), levels = c(0:nrow(cells_cluster)))), ]
+cells_cluster <- cells_cluster[, order(colnames(cells_cluster))]
+cells_cluster <- as.matrix(cells_cluster)
+
+tmp <- round(t(t(cells_cluster)/colSums(cells_cluster)) * 1000, 3)
+
+scaled_cM <- round((tmp/Matrix::rowSums(tmp)) * 100, 2)
+
+scaled_cM <- rbind(scaled_cM, c(93, 0,0,0,0,0,0,0,0))
+
+pheatmap::pheatmap(mat = t(scaled_cM), border_color = "black", 
+        display_numbers = TRUE, cluster_rows = FALSE, cluster_cols = FALSE, 
+        cellwidth = 30, cellheight = 30, main = "Figure S4e - Confusion after single samples")
+```
+
+# Calculate LISI score
+```{r}
+# devtools::install_github("immunogenomics/lisi")
+
+library(lisi)
+```
+
+## Prepare the matrix
+```{r}
+pre_batch <- cbind(condor$umap$pca_orig, condor$anno$cell_anno)
+
+post_batch <- cbind(condor$umap$pca_norm, condor$anno$cell_anno)
+
+res_pre <- compute_lisi(pre_batch[,c(1,2)], pre_batch, c('date'))
+
+colnames(res_pre) <- "lisi"
+
+res_post <- compute_lisi(post_batch[,c(1,2)], post_batch, c('date'))
+
+colnames(res_post) <- "lisi"
+
+lisi_mat_pre <- cbind(pre_batch, res_pre)
+
+lisi_mat_pre$type <- "pre"
+
+lisi_mat_post <- cbind(post_batch, res_post)
+
+lisi_mat_post$type <- "post"
+
+lisi_mat <- rbind(lisi_mat_post, lisi_mat_pre)
+
+lisi_mat$type <- factor(lisi_mat$type, levels = c("pre", "post"))
+```
+
+## Visualization
+```{r}
+ggplot(data = lisi_mat, aes(y = lisi, x = type, fill = type)) +
+  geom_jitter_rast(alpha = 0.01, scale =0.5) +
+  geom_violin(alpha = 0.8) +
+  scale_fill_aaas() +
+  theme_bw() +
+  theme(aspect.ratio = 2, panel.grid = element_blank()) + 
+  ggtitle("Figure S4b - LISI score preand post batch correction")
+```
+
+
+# Session Info
+```{r}
+info <- sessionInfo()
+
+info
+```
