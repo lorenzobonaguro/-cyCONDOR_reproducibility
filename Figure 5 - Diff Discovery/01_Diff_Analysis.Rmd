@@ -17,8 +17,8 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
-library(condor)
+```{r setup, warning=F, message=F}
+library(cyCONDOR)
 library(ggplot2)
 library(ggsci)
 library(dplyr)
@@ -27,23 +27,13 @@ library(ggrastr)
 library(ggpubr)
 ```
 
-```{r}
-cluster_palette <- c("#89C5DA", "#DA5724", "#74D944", "#CE50CA", "#3F4921", "#C0717C", "#CBD588", "#5F7FC7",
-                     "#673770", "#D3D93E", "#38333E", "#508578", "#D7C1B1", "#689030", "#AD6F3B", "#CD9BCD",
-                     "#D14285", "#6DDE88", "#652926", "#7FDCC0", "#C84248", "#8569D5", "#5E738F", "#D1A33D",
-                     "#8A7C64", "#599861", "#89C5DA", "#DA5724", "#74D944", "#CE50CA", "#3F4921", "#C0717C", "#CBD588", "#5F7FC7",
-                     "#673770", "#D3D93E", "#38333E", "#508578", "#D7C1B1", "#689030", "#AD6F3B", "#CD9BCD",
-                     "#D14285", "#6DDE88", "#652926", "#7FDCC0", "#C84248", "#8569D5", "#5E738F", "#D1A33D",
-                     "#8A7C64", "#599861")
-```
-
 # Loading the data
 
 ```{r}
-condor <- prep_fcd(FCSpath = "/home/user/data/Data/Package/condor/.test_files/fcs/", 
-                    ceil = 10000, 
+condor <- prep_fcd(data_path = "/home/user/data/Data/Figure 2 - Example Workflow/data/FC/", 
+                    max_cell = 10000, 
                     useCSV = FALSE, 
-                    transformation = "a", 
+                    transformation = "auto_logi", 
                     remove_param = c("FSC-H", "SSC-H", "FSC-W", "SSC-W", "Time", "InFile", "live_dead"), 
                     anno_table = "/home/user/data/Data/Figure 2 - Example Workflow/data/FC_metadata.csv", 
                     filename_col = "filename",
@@ -82,155 +72,392 @@ condor <- runPhenograph(fcd = condor,
                         seed = 91)
 ```
 
-```{r}
-plot_marker(data = cbind(condor$umap$pca_orig, condor$clustering$Phenograph_pca_orig_k_60), 
-            param = "Phenograph", 
-            order = T, 
-            title = "Figure S7b - UMAP Phenograph Clustering", 
-            dim_red = "UMAP", 
-            facet_by_variable = FALSE)
-```
-
-```{r}
-data <- cbind(condor$umap$pca_orig, condor$anno$cell_anno, condor$clustering$Phenograph_pca_orig_k_60)
-```
-
-```{r}
-ggplot(data = data, aes(x = UMAP1, y = UMAP2, color = Phenograph)) +
-  geom_point_rast(alpha = 0.2, size = 0.1) +
-  theme_bw() +
-  theme(aspect.ratio = 1, panel.grid = element_blank()) +
-  scale_color_manual(values = cluster_palette) + 
-  guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) + 
-  ggtitle("Figure S7b - UMAP Phenograph Clustering")
+```{r, fig.height=5, fig.width=5}
+plot_dim_red(fcd = condor, 
+             expr_slot = "orig", 
+             reduction_method = "umap", 
+             reduction_slot = "pca_orig", 
+             cluster_slot = "phenograph_pca_orig_k_60",
+             param = "Phenograph", 
+             order = T, 
+             title = "Figure S7b", 
+             facet_by_variable = FALSE, 
+             raster = TRUE)
 ```
 
 # Metaclustering
 
 ```{r}
 condor <- metaclustering(fcd = condor, 
-                         clustering = "Phenograph_pca_orig_k_60", 
-                         name_col = "Phenograph", 
-                         name_out = "metaclusters", 
+                         cluster_slot = "phenograph_pca_orig_k_60", 
+                         cluster_var = "Phenograph", 
+                         cluster_var_new = "metaclusters", 
                          metaclusters = c("1" = "Classical Monocytes", 
-                                          "2" = "B cells", 
+                                          "2" = "CD4", 
                                           "3" = "CD8", 
-                                          "4" = "CD8", 
-                                          "5" = "NK bright", 
-                                          "6" = "CD8", 
-                                          "7" = "CD4", 
-                                          "8" = "CD8", 
-                                          "9" = "CD4", 
-                                          "10" = "CD16+ Monocytes", 
-                                          "11" = "CD4", 
-                                          "12" = "NKT", 
-                                          "13" = "NK dim",
-                                          "14" = "Classical Monocytes",
-                                          "15" = "pDCs",
-                                          "16" = "Classical Monocytes",
-                                          "17" = "Classical Monocytes",
-                                          "18" = "CD4",
-                                          "19" = "NKT",
-                                          "20" = "CD8",
-                                          "21" = "Basophils",
-                                          "22" = "CD8",
-                                          "23" = "NK bright"))
+                                          "4" = "Nk dim", 
+                                          "5" = "CD8", 
+                                          "6" = "Classical Monocytes", 
+                                          "7" = "Unconventional T cells", 
+                                          "8" = "CD4", 
+                                          "9" = "CD16+ Monocytes", 
+                                          "10" = "CD4", 
+                                          "11" = "Classical Monocytes", 
+                                          "12" = "CD8", 
+                                          "13" = "CD8",
+                                          "14" = "NK bright",
+                                          "15" = "CD8",
+                                          "16" = "CD4",
+                                          "17" = "B cells",
+                                          "18" = "Unconventional T cells",
+                                          "19" = "Classical Monocytes",
+                                          "20" = "pDCs",
+                                          "21" = "CD8",
+                                          "22" = "Basophils",
+                                          "23" = "Mixed",
+                                          "24" = "B cells",
+                                          "25" = "NK bright"))
 ```
 
-```{r}
-plot_marker(data = cbind(condor$umap$pca_orig, condor$clustering$Phenograph_pca_orig_k_60), 
-            param = "metaclusters", 
-            order = T, 
-            title = "Figure 5b - UMAP Metaclusters", 
-            dim_red = "UMAP", 
-            facet_by_variable = FALSE)
-```
-
-```{r}
-data <- cbind(condor$umap$pca_orig, condor$anno$cell_anno, condor$clustering$Phenograph_pca_orig_k_60)
-```
-
-```{r}
-ggplot(data = data, aes(x = UMAP1, y = UMAP2, color = metaclusters)) +
-  geom_point_rast(alpha = 0.2, size = 0.1) +
-  theme_bw() +
-  theme(aspect.ratio = 1, panel.grid = element_blank()) +
-  scale_color_manual(values = cluster_palette) + 
-  guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) + ggtitle("Figure 5b - UMAP Metaclusters")
+```{r, fig.height=5, fig.width=5}
+plot_dim_red(fcd = condor, 
+             expr_slot = "orig", 
+             reduction_method = "umap", 
+             reduction_slot = "pca_orig", 
+             cluster_slot = "phenograph_pca_orig_k_60",
+             param = "metaclusters", 
+             order = T, 
+             title = "Figure 5b", 
+             facet_by_variable = FALSE, 
+             raster = TRUE)
 ```
 
 # Differential reppresentation
 
 ```{r, fig.width=15, fig.height=3}
-confusion_HM(variables = condor$clustering$Phenograph_pca_orig_k_60$Phenograph, 
-             group = condor$anno$cell_anno$group, size = 30, 
-             title = "Figure S7c - Confusion Matrix - Phenograph K60")
+plot_confusion_HM(fcd = condor, 
+                  cluster_slot = "phenograph_pca_orig_k_60", 
+                  cluster_var = "Phenograph", 
+                  group_var = "group", 
+                  size = 30, 
+                  title = "Figure S7c - Confusion Matrix - clusters")
 ```
 
 ```{r, fig.width=15, fig.height=3}
-confusion_HM(variables = condor$clustering$Phenograph_pca_orig_k_60$metaclusters, 
-             group = condor$anno$cell_anno$group, size = 30, 
-             title = "Figure 5c - Confusion Matrix - Metaclusters")
+plot_confusion_HM(fcd = condor, 
+                  cluster_slot = "phenograph_pca_orig_k_60", 
+                  cluster_var = "metaclusters", 
+                  group_var = "group", 
+                  size = 30, 
+                  title = "Figure 5c - Confusion Matrix - metaclusters")
 ```
 
-```{r}
-barplot_frequency(x_axes = condor$anno$cell_anno$group, 
-                  colour = condor$clustering$Phenograph_pca_orig_k_60$Phenograph, 
-                  title = "Stacked barplot of cluster frequencies", 
-                  legend_title = "Figure S7d - Phenograph Cluster - k60") + theme(aspect.ratio = 2)
+```{r, fig.height=5, fig.width=5}
+plot_frequency_barplot(fcd = condor,
+                       cluster_slot = "phenograph_pca_orig_k_60",
+                       cluster_var = "Phenograph",
+                       group_var = "group",
+                       facet_var = "group", 
+                       title = "Figure S7d - Frequency clusters")
 ```
 
-```{r}
-barplot_frequency(x_axes = condor$anno$cell_anno$group, 
-                  colour = condor$clustering$Phenograph_pca_orig_k_60$metaclusters, 
-                  title = "Stacked barplot of cluster frequencies", 
-                  legend_title = "Figure 5d - Metaclusters") + theme(aspect.ratio = 2)
+```{r, fig.height=5, fig.width=5}
+plot_frequency_barplot(fcd = condor,
+                       cluster_slot = "phenograph_pca_orig_k_60",
+                       cluster_var = "metaclusters",
+                       group_var = "group",
+                       facet_var = "group", 
+                       title = "Figure 5d - Frequency clusters")
 ```
 
-```{r, fig.width=20, fig.height=20}
+```{r, fig.width=12, fig.height=12}
 # Figure S7e
+# factor levels can be used to influence plotting order of groupes on the x-axis
+condor$anno$cell_anno$group<-factor(condor$anno$cell_anno$group, levels=c("ctrl","pat"))
 
-box_stat <- boxplot_and_stats(annotation = condor$anno$cell_anno, 
-                              sample_var = "sample_ID", 
-                              group_var = "group", 
-                              variable = condor$clustering$Phenograph_pca_orig_k_60$Phenograph, 
-                              numeric = FALSE, 
-                              test.type = "t.test")
+# assign output to object plots
+plots <- plot_frequency_boxplot(fcd = condor,
+                                cluster_slot = "phenograph_pca_orig_k_60", 
+                                cluster_var = "Phenograph",
+                                sample_var = "sample_ID", 
+                                group_var = "group", 
+                                numeric = F,
+                                color_palette = c("pat"="#F15A29","ctrl"="#92278F"))
 
-ggarrange(plotlist = box_stat$plot, legend = "none")
+# the list of plots can be summarized to one graph, by using e.g. the cowplot package.
+cowplot::plot_grid(plotlist = plots, nrow = 4)
+
+#ggsave("/home/user/data/Figures/Figure 5/raw/new/Fig_s7e.pdf", width = 12, height = 12)
 ```
 
-```{r, fig.width=10, fig.height=10}
+```{r, fig.width=5, fig.height=12}
 # Figure 5e
+# factor levels can be used to influence plotting order of groupes on the x-axis
+condor$anno$cell_anno$group<-factor(condor$anno$cell_anno$group, levels=c("ctrl","pat"))
 
-box_stat <- boxplot_and_stats(annotation = condor$anno$cell_anno, 
-                              sample_var = "sample_ID", 
-                              group_var = "group", 
-                              variable = condor$clustering$Phenograph_pca_orig_k_60$metaclusters, 
-                              numeric = FALSE, 
-                              test.type = "t.test")
+# assign output to object plots
+plots <- plot_frequency_boxplot(fcd = condor,
+                                cluster_slot = "phenograph_pca_orig_k_60", 
+                                cluster_var = "metaclusters",
+                                sample_var = "sample_ID", 
+                                group_var = "group", 
+                                numeric = F,
+                                color_palette = c("pat"="#F15A29","ctrl"="#92278F"))
 
-ggarrange(plotlist = box_stat$plot, legend = "none")
+# the list of plots can be summarized to one graph, by using e.g. the cowplot package.
+cowplot::plot_grid(plotlist = plots, nrow = 4)
+
+#ggsave("/home/user/data/Figures/Figure 5/raw/new/Fig_5e.pdf", width = 5, height = 12)
+```
+
+```{r}
+results_ttest_metacluster <- frequency_t_test(fcd = condor,
+                                              cluster_slot = "phenograph_pca_orig_k_60", 
+                                              cluster_var = "metaclusters",
+                                              sample_var = "sample_ID", 
+                                              group_var = "group",
+                                              paired_test = F,
+                                              p.adjust.method = "bonferroni",
+                                              numeric = F)
+
+results_ttest_metacluster
+
+write.csv(results_ttest_metacluster, file = "../../Tables/240706_Table2_DA_cyCONDOR_metaclusters.csv")
+```
+
+```{r}
+results_ttest_cluster <- frequency_t_test(fcd = condor,
+                                          cluster_slot = "phenograph_pca_orig_k_60", 
+                                          cluster_var = "Phenograph",
+                                          sample_var = "sample_ID", 
+                                          group_var = "group",
+                                          paired_test = F,
+                                          p.adjust.method = "bonferroni",
+                                          numeric = F)
+
+results_ttest_cluster
+
+write.csv(results_ttest_cluster, file = "../../Tables/240706_Table1_DA_cyCONDOR_clusters.csv")
 ```
 
 # Differential expression
 ```{r, fig.width=20, fig.height=8}
-HM_differential_marker(fcd = condor, 
-                       data_slot = "orig", 
-                       cluster_method = "Phenograph_pca_orig_k_60", 
-                       cluster_type = "Phenograph", 
-                       group_by = "group",
-                       title = "Figure S8a - Marker expression per cluster and phenograph cluster")
+plot_marker_group_HM(fcd = condor,
+                     expr_slot = "orig",
+                     marker_to_exclude = c("FSC-A","SSC-A"),
+                     cluster_slot = "phenograph_pca_orig_k_60",
+                     cluster_var = "Phenograph",
+                     group_var = "group", 
+                     title = "Figure S8a")
 ```
 
 ```{r, fig.width=20, fig.height=8}
-HM_differential_marker(fcd = condor, 
-                       data_slot = "orig", 
-                       cluster_method = "Phenograph_pca_orig_k_60", 
-                       cluster_type = "metaclusters", 
-                       group_by = "group",
-                       title = "Figure 5f - Marker expression per cluster and group")
+plot_marker_group_HM(fcd = condor,
+                     expr_slot = "orig",
+                     marker_to_exclude = c("FSC-A","SSC-A"),
+                     cluster_slot = "phenograph_pca_orig_k_60",
+                     cluster_var = "metaclusters",
+                     group_var = "group", 
+                     title = "Figure 5f")
 ```
+
+# diffcyt
+
+## Clusters
+
+### Differential aboundance
+
+```{r}
+condor_se<-prepInputDiffcyt(fcd = condor,
+                            cluster_slot = "phenograph_pca_orig_k_60",
+                            cluster_var = "Phenograph",
+                            sample_var = "sample_ID",
+                            meta_vars = c("expfcs_filename","group"),
+                            marker_state = NULL,
+                            marker_type = NULL)
+```
+
+```{r}
+condor_se
+```
+
+```{r}
+# calculate cell counts
+d_counts <- diffcyt::calcCounts(condor_se)
+
+# inspect object
+d_counts
+```
+
+```{r}
+# inspect counts
+SummarizedExperiment::assays(d_counts)$counts
+```
+
+```{r}
+# Calculate cluster medians
+d_medians <- diffcyt::calcMedians(condor_se)
+
+#inspect medians
+d_medians
+```
+
+```{r}
+experiment_info<-condor_se@metadata$experiment_info
+
+design <- diffcyt::createDesignMatrix(experiment_info,
+                                      cols_design = c("group"))
+design
+```
+
+```{r}
+# Create contrast matrix
+contrast <- diffcyt::createContrast(c(0, 1))
+
+# check
+nrow(contrast) == ncol(design)
+
+data.frame(parameters = colnames(design), contrast)
+```
+
+```{r}
+# perform differential abundance test
+res_DA <- diffcyt::testDA_edgeR(d_counts, design, contrast)
+```
+
+```{r}
+# table of results ordered by increasing adjusted p-value
+cluster_DA_results <- as.data.frame(diffcyt::topTable(res_DA, all = TRUE))
+
+cluster_DA_results
+
+write.csv(cluster_DA_results, file = "../../Tables/240706_Table3_DA_diffcyt_clusters.csv")
+```
+
+## Metaclusters
+
+### Differential aboundance
+
+```{r}
+condor_se<-prepInputDiffcyt(fcd = condor,
+                            cluster_slot = "phenograph_pca_orig_k_60",
+                            cluster_var = "metaclusters",
+                            sample_var = "sample_ID",
+                            meta_vars = c("expfcs_filename","group"),
+                            marker_state = NULL,
+                            marker_type = NULL)
+```
+
+```{r}
+condor_se
+```
+
+```{r}
+# calculate cell counts
+d_counts <- diffcyt::calcCounts(condor_se)
+
+# inspect object
+d_counts
+```
+
+```{r}
+# inspect counts
+SummarizedExperiment::assays(d_counts)$counts
+```
+
+```{r}
+# Calculate cluster medians
+d_medians <- diffcyt::calcMedians(condor_se)
+
+#inspect medians
+d_medians
+```
+
+```{r}
+# inspect medians
+SummarizedExperiment::assays(d_medians)$CD57
+```
+
+```{r}
+experiment_info<-condor_se@metadata$experiment_info
+
+design <- diffcyt::createDesignMatrix(experiment_info,
+                                      cols_design = c("group"))
+design
+```
+
+```{r}
+# Create contrast matrix
+contrast <- diffcyt::createContrast(c(0, 1))
+
+# check
+nrow(contrast) == ncol(design)
+
+data.frame(parameters = colnames(design), contrast)
+```
+
+```{r}
+# perform differential abundance test
+res_DA <- diffcyt::testDA_edgeR(d_counts, design, contrast)
+```
+
+```{r}
+# table of results ordered by increasing adjusted p-value
+metacluster_DA_results <- as.data.frame(diffcyt::topTable(res_DA, all = TRUE))
+
+metacluster_DA_results
+
+write.csv(metacluster_DA_results, file = "../../Tables/240706_Table4_DA_diffcyt_metaclusterclusters.csv")
+```
+
+### Differential expression
+
+```{r}
+experiment_info<-condor_se@metadata$experiment_info
+
+formula <- diffcyt::createFormula(experiment_info, cols_fixed = "group")
+
+formula
+```
+
+```{r}
+marker_info <- SummarizedExperiment::colData(condor_se) %>% as.data.frame()
+marker_info
+```
+
+```{r}
+#get logical vector of marker to be tested
+markers_oi <- !names(SummarizedExperiment::assays(d_medians)) %in% c("SSC-A","FSC-A")
+
+# perform differential state analysis
+res_DS <- diffcyt::testDS_LMM(d_counts, d_medians, formula, contrast,
+                                markers_to_test = markers_oi)
+```
+
+```{r}
+res_metacluster <-as.data.frame(diffcyt::topTable(res_DS, all = TRUE))
+
+res_metacluster[1:10,]
+
+write.csv(res_metacluster, file = "../../Tables/240706_Table5_DE_diffcyt_metaclusters.csv")
+```
+
+## Figure s8b
+
+```{r, fig.height=5, fig.width=5}
+plot_marker_boxplot(fcd = condor,
+                    marker = c("CD94 (KLRD1)", "CD57"),
+                    expr_slot ="orig",
+                    cluster_slot = "phenograph_pca_orig_k_60",
+                    cluster_var = "metaclusters",
+                    cluster_to_show = "CD8",
+                    facet_by_clustering = T,
+                    group_var = "group", 
+                    sample_var = "sample_ID",
+                    fun = "median", 
+                    color_palette = c("pat"="#F15A29","ctrl"="#92278F")) + theme(aspect.ratio = 1)
+```
+
 
 # Session Info
 ```{r}

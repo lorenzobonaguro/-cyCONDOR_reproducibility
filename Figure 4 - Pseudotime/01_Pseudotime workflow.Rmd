@@ -17,8 +17,8 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
-library(condor)
+```{r setup, message=F, warning=F}
+library(cyCONDOR)
 library(ggplot2)
 library(ggsci)
 library(dplyr)
@@ -29,11 +29,11 @@ library(pheatmap)
 # Loading the data
 
 ```{r}
-condor <- prep_fcd(FCSpath = "./Data/CyTOF_BM/", 
-                    ceil = 10000, 
+condor <- prep_fcd(data_path = "./Data/CyTOF_BM/", 
+                    max_cell = 10000, 
                     useCSV = FALSE, 
-                    transformation = "a", 
-                    remove_param = c("Cell Length", "191-DNA", "193-DNA", "EventNum", "110-CD3", "111-CD3", "112-CD3", "113-CD3", "114-CD3", "InFile", "Time"), 
+                    transformation = "auto_logi", 
+                    remove_param = c("Cell Length", "191-DNA", "193-DNA", "EventNum", "110-CD3", "111-CD3", "112-CD3", "113-CD3", "114-CD3", "Time"), 
                     anno_table = "./data/Bendall_et_al_Science_2011_singlets.csv", 
                     filename_col = "filename",
                     seed = 91)
@@ -71,29 +71,36 @@ condor <- runPhenograph(fcd = condor,
                         seed = 91)
 ```
 
-```{r}
-plot_marker(data = cbind(condor$umap$pca_orig, condor$clustering$Phenograph_pca_orig_k_10), 
-            param = "Phenograph", 
-            order = T, 
-            title = "Figure S5b - UMAP Phenograph clustering", 
-            dim_red = "UMAP", 
-            facet_by_variable = FALSE, dot_size = 0.2, apha = 1)
+```{r, fig.height=5, fig.width=5}
+plot_dim_red(fcd = condor, 
+             expr_slot = "orig", 
+             reduction_method = "umap", 
+             reduction_slot = "pca_orig", 
+             cluster_slot = "phenograph_pca_orig_k_10",
+             param = "Phenograph", 
+             order = T, 
+             title = "Figure S5b - UMAP Phenograph clustering", 
+             facet_by_variable = FALSE, 
+             raster = TRUE)
 ```
 
-```{r, fig.height=7}
-HM_markers(input = cbind(condor$expr$orig, condor$clustering$Phenograph_pca_orig_k_10), 
-           group = "Phenograph",
-           maxvalue = 2, 
-           title = "Figure S5c - Marker expression Phenograph clustering", 
-           cluster_rows = TRUE, cluster_cols = TRUE)
+```{r, fig.height=7, fig.width=7}
+plot_marker_HM(fcd = condor, 
+               expr_slot = "orig", 
+               cluster_slot = "phenograph_pca_orig_k_10", 
+               cluster_var = "Phenograph",
+               maxvalue = 2, 
+               title = "Figure S5c - Marker expression Phenograph clustering", 
+               cluster_rows = TRUE, 
+               cluster_cols = TRUE)
 ```
 
 # Metaclustering
 ```{r}
 condor <- metaclustering(fcd = condor, 
-                         clustering = "Phenograph_pca_orig_k_10", 
-                         name_col = "Phenograph", 
-                         name_out = "metaclusters", 
+                         cluster_slot = "phenograph_pca_orig_k_10", 
+                         cluster_var = "Phenograph", 
+                         cluster_var_new = "metaclusters", 
                          metaclusters = c("1" = "Mature B cells IL3Ra+", 
                                           "2" = "Monoblast", 
                                           "3" = "Granulocytes", 
@@ -122,20 +129,24 @@ condor <- metaclustering(fcd = condor,
                                           "26" = "CD8+ T cells"))
 ```
 
-```{r}
-plot_marker(data = cbind(condor$umap$pca_orig, condor$clustering$Phenograph_pca_orig_k_10), 
-            param = "metaclusters", 
-            order = T, 
-            title = "Figure 4b - UMAP Metaclusters", 
-            dim_red = "UMAP", 
-            facet_by_variable = FALSE, dot_size = 0.2, apha = 1)
+```{r, fig.height=5, fig.width=5}
+plot_dim_red(fcd = condor, 
+             expr_slot = "orig", 
+             reduction_method = "umap", 
+             reduction_slot = "pca_orig", 
+             cluster_slot = "phenograph_pca_orig_k_10",
+             param = "metaclusters", 
+             order = T, 
+             title = "Figure 4b - UMAP Metaclusters", 
+             facet_by_variable = FALSE, 
+             raster = TRUE)
 ```
 
 # Subset the monocytes - pDCs lineages
 ```{r}
-selections <- rownames(condor$clustering$Phenograph_pca_orig_k_10[condor$clustering$Phenograph_pca_orig_k_10$metaclusters %in% c("HSCs", "pDCs", "Monoblast", "Monocytes"), ])
+selections <- rownames(condor$clustering$phenograph_pca_orig_k_10[condor$clustering$phenograph_pca_orig_k_10$metaclusters %in% c("HSCs", "pDCs", "Monoblast", "Monocytes"), ])
 
-condor_filter <- filter_fcd(fcdataset = condor,
+condor_filter <- filter_fcd(fcd = condor,
                             cell_ids = selections)
 ```
 
@@ -168,27 +179,44 @@ condor_filter <- runPhenograph(fcd = condor_filter,
 
 ```{r}
 ## Remove contaminating cluster
-selections <- rownames(condor_filter$clustering$Phenograph_filter_pca_orig_k_10[!condor_filter$clustering$Phenograph_filter_pca_orig_k_10$Phenograph %in% c("11"), ])
+selections <- rownames(condor_filter$clustering$phenograph_filter_pca_orig_k_10[!condor_filter$clustering$phenograph_filter_pca_orig_k_10$Phenograph %in% c("11"), ])
 
-condor_filter <- filter_fcd(fcdataset = condor_filter,
+condor_filter <- filter_fcd(fcd = condor_filter,
                             cell_ids = selections)
 ```
 
-```{r}
-plot_marker(data = cbind(condor_filter$umap$pca_orig, condor_filter$anno$cell_anno, condor_filter$clustering$Phenograph_filter_pca_orig_k_10), 
-            param = "Phenograph", 
-            order = T, 
-            title = "Figure S5d - UMAP by group", 
-            dim_red = "UMAP", 
-            facet_by_variable = FALSE, dot_size = 1, apha = 1)
+```{r, fig.height=5, fig.width=5}
+plot_dim_red(fcd = condor_filter, 
+             expr_slot = "orig", 
+             reduction_method = "umap", 
+             reduction_slot = "pca_orig", 
+             cluster_slot = "phenograph_filter_pca_orig_k_10",
+             param = "Phenograph", 
+             order = T, 
+             title = "Figure S5d - UMAP by group", 
+             facet_by_variable = FALSE, 
+             raster = TRUE, 
+             alpha = 1, 
+             dot_size = 1)
+```
+
+```{r, fig.height=7, fig.width=7}
+plot_marker_HM(fcd = condor_filter, 
+               expr_slot = "orig", 
+               cluster_slot = "phenograph_filter_pca_orig_k_10", 
+               cluster_var = "Phenograph",
+               maxvalue = 2, 
+               title = "Figure S5c - Marker expression Phenograph clustering", 
+               cluster_rows = TRUE, 
+               cluster_cols = TRUE)
 ```
 
 # Metaclustering
 ```{r}
 condor_filter <- metaclustering(fcd = condor_filter, 
-                         clustering = "Phenograph_filter_pca_orig_k_10", 
-                         name_col = "Phenograph", 
-                         name_out = "metaclusters", 
+                         cluster_slot = "phenograph_filter_pca_orig_k_10", 
+                         cluster_var = "Phenograph", 
+                         cluster_var_new = "metaclusters", 
                          metaclusters = c("1" = "Myelocytes", 
                                           "2" = "Monocytes", 
                                           "3" = "Monocytes", 
@@ -206,40 +234,47 @@ condor_filter <- metaclustering(fcd = condor_filter,
                                           "15" = "Monocytes"))
 ```
 
-```{r}
-plot_marker(data = cbind(condor_filter$umap$pca_orig, condor_filter$anno$cell_anno, condor_filter$clustering$Phenograph_filter_pca_orig_k_10), 
-            param = "metaclusters", 
-            order = T, 
-            title = "Figure 4c - UMAP by Phenograph", 
-            dim_red = "UMAP", 
-            facet_by_variable = FALSE, dot_size = 1, apha = 1)
-```
-
-```{r, fig.height=7}
-HM_markers(input = cbind(condor_filter$expr$orig, condor_filter$clustering$Phenograph_filter_pca_orig_k_10), 
-           group = "Phenograph",
-           maxvalue = 2, 
-           title = "Fig S5e - Marker expression Phenograph clustering", 
-           cluster_rows = TRUE, cluster_cols = TRUE)
+```{r, fig.height=5, fig.width=5}
+plot_dim_red(fcd = condor_filter, 
+             expr_slot = "orig", 
+             reduction_method = "umap", 
+             reduction_slot = "pca_orig", 
+             cluster_slot = "phenograph_filter_pca_orig_k_10",
+             param = "metaclusters", 
+             order = T, 
+             title = "Figure S5d - UMAP by group", 
+             facet_by_variable = FALSE, 
+             raster = TRUE, 
+             alpha = 1, 
+             dot_size = 1)
 ```
 
 # Pseudotime analysis
 ```{r}
 condor_filter <- runPseudotime(fcd = condor_filter, 
-                               dim_red_type = "umap", 
-                               dim_red_name = "pca_orig",
-                               clustering = condor_filter$clustering$Phenograph_filter_pca_orig_k_10$metaclusters, 
+                               reduction_method = "umap", 
+                               reduction_slot = "pca_orig", 
+                               cluster_slot = "phenograph_filter_pca_orig_k_10", 
+                               cluster_var = "metaclusters",
                                approx_points = 5, 
                                seed = 91)
 ```
 
-```{r}
-plot_marker(data = cbind(condor_filter$umap$pca_orig, condor_filter$clustering$Phenograph_filter_pca_orig_k_10, condor_filter$pseudotime$slingshot_umap_pca_orig), 
-                   param = "mean", 
-                   order = T, 
-                   title = "Figure 4e - UMAP mean pseudotime", 
-                   dim_red = "UMAP", 
-                   facet_by_variable = FALSE, dot_size = 1, apha = 1) + 
+```{r, fig.height=5, fig.width=5}
+plot_dim_red(fcd = condor_filter, 
+             expr_slot = "orig", 
+             reduction_method = "umap", 
+             reduction_slot = "pca_orig", 
+             cluster_slot = "phenograph_filter_pca_orig_k_10", 
+             add_pseudotime = TRUE, 
+             pseudotime_slot = "slingshot_umap_pca_orig",
+             param = "mean", 
+             order = T, 
+             title = "Figure S5d - UMAP by group", 
+             facet_by_variable = FALSE, 
+             raster = TRUE, 
+             alpha = 1, 
+             dot_size = 1) + 
   geom_path(data = condor_filter$extras$slingshot_umap_pca_orig$lineages %>% arrange(Order), aes(group = Lineage), size = 0.5)
 ```
 
@@ -247,16 +282,16 @@ plot_marker(data = cbind(condor_filter$umap$pca_orig, condor_filter$clustering$P
 
 ## DCs
 ```{r}
-selections <- rownames(condor_filter$clustering$Phenograph_filter_pca_orig_k_10[condor_filter$clustering$Phenograph_filter_pca_orig_k_10$metaclusters %in% c("HSCs", "Pre-DC", "pDCs"), ])
+selections <- rownames(condor_filter$clustering$phenograph_filter_pca_orig_k_10[condor_filter$clustering$phenograph_filter_pca_orig_k_10$metaclusters %in% c("HSCs", "Pre-DC", "pDCs"), ])
 
-condor_dcs <- filter_fcd(fcdataset = condor_filter,
-                            cell_ids = selections)
+condor_dcs <- filter_fcd(fcd = condor_filter,
+                         cell_ids = selections)
 ```
 
 ```{r}
 expression <- condor_dcs$expr$orig
 
-anno <- cbind(condor_dcs$clustering$Phenograph_filter_pca_orig_k_10[, c("Phenograph", "metaclusters")], condor_dcs$pseudotime$slingshot_umap_pca_orig)
+anno <- cbind(condor_dcs$clustering$phenograph_filter_pca_orig_k_10[, c("Phenograph", "metaclusters")], condor_dcs$pseudotime$slingshot_umap_pca_orig)
 
 anno <- anno[order(anno$Lineage2, decreasing = TRUE),]
 
@@ -265,7 +300,7 @@ expression <- expression[rownames(anno), c("174-HLADR", "151-CD123", "148-CD34")
 my_colour = list(metaclusters = c(HSCs = "#689030", pDCs = "#CD9BCD", `Pre-DC` = "#2B3990"))
 ```
 
-```{r}
+```{r, fig.height=7, fig.width=3}
 pheatmap(mat = expression, 
          scale = "column", 
          show_rownames = FALSE, 
@@ -280,16 +315,16 @@ pheatmap(mat = expression,
 
 ## Monocytes
 ```{r}
-selections <- rownames(condor_filter$clustering$Phenograph_filter_pca_orig_k_10[condor_filter$clustering$Phenograph_filter_pca_orig_k_10$metaclusters %in% c("HSCs", "CMPs", "Myeloblast", "Monocytes"), ])
+selections <- rownames(condor_filter$clustering$phenograph_filter_pca_orig_k_10[condor_filter$clustering$phenograph_filter_pca_orig_k_10$metaclusters %in% c("HSCs", "CMPs", "Myeloblast", "Monocytes"), ])
 
-condor_mono <- filter_fcd(fcdataset = condor_filter,
-                            cell_ids = selections)
+condor_mono <- filter_fcd(fcd = condor_filter,
+                          cell_ids = selections)
 ```
 
 ```{r}
 expression <- condor_mono$expr$orig
 
-anno <- cbind(condor_mono$clustering$Phenograph_filter_pca_orig_k_10[, c("Phenograph", "metaclusters")], condor_mono$pseudotime$slingshot_umap_pca_orig)
+anno <- cbind(condor_mono$clustering$phenograph_filter_pca_orig_k_10[, c("Phenograph", "metaclusters")], condor_mono$pseudotime$slingshot_umap_pca_orig)
 
 anno <- anno[order(anno$Lineage2, decreasing = FALSE),]
 
@@ -298,7 +333,7 @@ expression <- expression[rownames(anno), c("148-CD34", "160-CD14", "144-CD11b")]
 my_colour = list(metaclusters = c(Monocytes = "#CBD588", HSCs = "#689030", Myeloblast = "#DA5724", CMPs = "#F7941D"))
 ```
 
-```{r}
+```{r, fig.height=7, fig.width=3}
 pheatmap(mat = expression, 
          scale = "column", 
          show_rownames = FALSE, 

@@ -19,8 +19,8 @@ knitr::opts_chunk$set(
 
 # Loading required packages
 
-```{r setup}
-library(condor, quietly = TRUE)
+```{r setup, warning=F, message=F}
+library(cyCONDOR, quietly = TRUE)
 library(ggplot2)
 library(ggsci)
 library(dplyr)
@@ -29,24 +29,14 @@ library(ggrastr)
 library(RColorBrewer)
 ```
 
-```{r}
-cluster_palette <- c("#89C5DA", "#DA5724", "#74D944", "#CE50CA", "#3F4921", "#C0717C", "#CBD588", "#5F7FC7",
-                     "#673770", "#D3D93E", "#38333E", "#508578", "#D7C1B1", "#689030", "#AD6F3B", "#CD9BCD",
-                     "#D14285", "#6DDE88", "#652926", "#7FDCC0", "#C84248", "#8569D5", "#5E738F", "#D1A33D",
-                     "#8A7C64", "#599861", "#89C5DA", "#DA5724", "#74D944", "#CE50CA", "#3F4921", "#C0717C", "#CBD588", "#5F7FC7",
-                     "#673770", "#D3D93E", "#38333E", "#508578", "#D7C1B1", "#689030", "#AD6F3B", "#CD9BCD",
-                     "#D14285", "#6DDE88", "#652926", "#7FDCC0", "#C84248", "#8569D5", "#5E738F", "#D1A33D",
-                     "#8A7C64", "#599861")
-```
-
 # Loading the data
 
 ```{r}
-condor <- prep_fcd(FCSpath = "/home/user/data/Data/Package/condor/.test_files/fcs/", 
-                    ceil = 10000, 
+condor <- prep_fcd(data_path  = "./data/FC/", 
+                    max_cell = 10000, 
                     useCSV = FALSE, 
-                    transformation = "a", 
-                    remove_param = c("FSC-H", "SSC-H", "FSC-W", "SSC-W", "Time", "InFile", "live_dead"), 
+                    transformation = "auto_logi", 
+                    remove_param = c("FSC-H", "SSC-H", "FSC-W", "SSC-W", "Time", "live_dead"), 
                     anno_table = "./data/FC_metadata.csv", 
                     filename_col = "filename",
                     seed = 91)
@@ -62,21 +52,21 @@ class(condor)
 pb_PCA <- runPCA_pseudobulk(condor)
 ```
 
-```{r}
+```{r, fig.height=5, fig.width=5}
 ggplot(pb_PCA$pca, aes(x = PC1, y = PC2, color = group)) +
   geom_point(size = 7) +
   scale_color_manual(values = c("#BEBEBE", "#CE2827")) +
   theme_bw() + theme(aspect.ratio = 1) + ggtitle("Fig 2b Bulk PCA")
 ```
 
-```{r}
+```{r, fig.height=5, fig.width=7}
 tmp <- scale(pb_PCA$data)
 
 tmp <- tmp[c("ID3.fcs", "ID5.fcs", "ID7.fcs", "ID6.fcs", "ID8.fcs", "ID10.fcs"),]
 
 pheatmap::pheatmap(tmp, scale = "none", cluster_rows = FALSE, cluster_cols = TRUE,
-                     breaks = condor::scaleColors(data = tmp, maxvalue = NULL)[["breaks"]],
-                     color = condor::scaleColors(data = tmp, maxvalue = NULL)[["color"]],
+                     breaks = cyCONDOR::scaleColors(data = tmp, maxvalue = NULL)[["breaks"]],
+                     color = cyCONDOR::scaleColors(data = tmp, maxvalue = NULL)[["color"]],
                      main = "Fig 2c Pseudobulk marker heatmap", cellwidth = 15, cellheight = 15)
 ```
 
@@ -90,15 +80,24 @@ condor <- runPCA(fcd = condor,
                  seed = 91)
 ```
 
-```{r}
-ggplot(cbind(condor$pca$orig, condor$anno$cell_anno), aes(x = PC1, y = PC2, color = group)) +
-  geom_point_rast(size = 0.2) +
-  scale_color_manual(values = c("#BEBEBE", "#CE2827")) +
-  theme_bw() + theme(aspect.ratio = 1) + ggtitle("Fig S2b PCA")
+```{r, fig.height=5, fig.width=5}
+plot_dim_red(fcd = condor, 
+             expr_slot = "orig", 
+             reduction_method = "pca", 
+             reduction_slot = "orig", 
+             cluster_slot = NULL,
+             param = "group", 
+             order = T, 
+             title = "Figure s3b - UMAP group", 
+             facet_by_variable = FALSE, 
+             color_discrete = c("#BEBEBE", "#CE2827"), 
+             raster = TRUE, 
+             dot_size = 0.2, 
+             alpha = 1)
 ```
 
-```{r}
-PC_loadings(fcd = condor, data_slot = "orig", number = 1)
+```{r, fig.height=7, fig.width=7}
+PC_loadings(fcd = condor, data_slot = "orig", nPC = 1)
 ```
 
 
@@ -115,23 +114,28 @@ condor <- runUMAP(fcd = condor,
 data <- cbind(condor$umap$pca_orig, condor$anno$cell_anno)
 ```
 
-```{r}
-ggplot(data = data, aes(x = UMAP1, y = UMAP2, color = group)) +
-  geom_point_rast(alpha = 0.2, size = 0.1) +
-  theme_bw() +
-  theme(aspect.ratio = 1, panel.grid = element_blank()) +
-  scale_color_manual(values = c("#BEBEBE", "#CE2827")) + 
-  guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) + 
-  ggtitle("Figure 2d - UMAP group")
+```{r, fig.height=5, fig.width=5}
+plot_dim_red(fcd = condor, 
+             expr_slot = "orig", 
+             reduction_method = "umap", 
+             reduction_slot = "pca_orig", 
+             cluster_slot = NULL,
+             param = "group", 
+             order = T, 
+             title = "Figure 2d - UMAP group", 
+             facet_by_variable = FALSE, 
+             color_discrete = c("#BEBEBE", "#CE2827"), 
+             raster = TRUE)
 ```
 
-```{r, fig.width=15}
-plot_density(data = cbind(condor$umap$pca_orig, condor$anno$cell_anno), 
-             param = "group", 
-             title = "Figure S2d - Density Map", 
-             dim_red = "UMAP", 
-             dot_size = 0.2, 
-             alpha = 0.2, color_density = c("Greys", "Reds"))
+```{r, fig.height=5, fig.width=8}
+plot_dim_density(fcd = condor, 
+                 reduction_method = "umap", 
+                 reduction_slot = "pca_orig", 
+                 group_var = "group", 
+                 title = "Figure S2d - Density Map", 
+                 dot_size = 0.2, 
+                 alpha = 0.2, color_density = c("Greys", "Reds"))
 ```
 
 ## tSNE
@@ -154,36 +158,28 @@ condor <- runPhenograph(fcd = condor,
                         seed = 91)
 ```
 
-```{r}
-plot_marker(data = cbind(condor$umap$pca_orig, condor$clustering$Phenograph_pca_orig_k_60), 
-            param = "Phenograph", 
-            order = T, 
-            title = "Figure 2e - UMAP Phenograph clustering", 
-            dim_red = "UMAP", 
-            facet_by_variable = FALSE)
+```{r, fig.height=5, fig.width=5}
+plot_dim_red(fcd = condor, 
+             expr_slot = "orig", 
+             reduction_method = "umap", 
+             reduction_slot = "pca_orig", 
+             cluster_slot = "phenograph_pca_orig_k_60",
+             param = "Phenograph", 
+             order = T, 
+             title = "Figure 2e - UMAP Phenograph clustering", 
+             facet_by_variable = FALSE, 
+             raster = TRUE, label_clusters = F)
 ```
 
-### Rastered Phenograph clustering
-```{r}
-data <- cbind(condor$umap$pca_orig, condor$anno$cell_anno, condor$clustering$Phenograph_pca_orig_k_60)
-```
-
-```{r}
-ggplot(data = data, aes(x = UMAP1, y = UMAP2, color = Phenograph)) +
-  geom_point_rast(alpha = 0.2, size = 0.1) +
-  theme_bw() +
-  theme(aspect.ratio = 1, panel.grid = element_blank()) +
-  scale_color_manual(values = cluster_palette) + 
-  guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) +
-  ggtitle("Figure 2e - UMAP Phenograph clustering")
-```
-
-```{r, fig.height=7}
-HM_markers(input = cbind(condor$expr$orig, condor$clustering$Phenograph_pca_orig_k_60), 
-           group = "Phenograph",
-           maxvalue = 2, 
-           title = "Figure S3a - Marker expression Phenograph clustering", 
-           cluster_rows = TRUE)
+```{r, fig.height=7, fig.width=7}
+plot_marker_HM(fcd = condor, 
+               expr_slot = "orig", 
+               cluster_slot = "phenograph_pca_orig_k_60", 
+               cluster_var = "Phenograph",
+               maxvalue = 2, 
+               marker_to_exclude = c("FSC-A", "SSC-A"),
+               title = "Figure S3b - Marker expression Phenograph clustering", 
+               cluster_rows = TRUE)
 ```
 
 ## FlowSOM
@@ -191,47 +187,47 @@ HM_markers(input = cbind(condor$expr$orig, condor$clustering$Phenograph_pca_orig
 condor <- runFlowSOM(fcd = condor, 
                      input_type = "pca", 
                      data_slot = "orig", 
-                     num_clusters = 15, 
+                     nClusters = 15, 
                      seed = 91, 
                      prefix = NULL, 
                      ret_model = TRUE)
 ```
 
-```{r}
-plot_marker(data = cbind(condor$umap$pca_orig, condor$clustering$FlowSOM_pca_orig_k_15), 
-            param = "FlowSOM", 
-            order = T, 
-            title = "Figure S3b - UMAP FlowSOM Clustering", 
-            dim_red = "UMAP", 
-            facet_by_variable = FALSE)
+```{r, fig.height=5, fig.width=5}
+plot_dim_red(fcd = condor, 
+             expr_slot = "orig", 
+             reduction_method = "umap", 
+             reduction_slot = "pca_orig", 
+             cluster_slot = "FlowSOM_pca_orig_k_15",
+             param = "FlowSOM", 
+             order = T, 
+             title = "Figure S3c - UMAP FlowSOM Clustering", 
+             facet_by_variable = FALSE, 
+             raster = TRUE)
 ```
 
 ### Visualization of the SOM
-```{r}
+```{r, fig.height=5, fig.width=5}
+cluster_palette <- c("#89C5DA", "#DA5724", "#74D944", "#CE50CA", "#3F4921", "#C0717C", "#CBD588", "#5F7FC7",
+                     "#673770", "#D3D93E", "#38333E", "#508578", "#D7C1B1", "#689030", "#AD6F3B", "#CD9BCD",
+                     "#D14285", "#6DDE88", "#652926", "#7FDCC0", "#C84248", "#8569D5", "#5E738F", "#D1A33D",
+                     "#8A7C64", "#599861", "#89C5DA", "#DA5724", "#74D944", "#CE50CA", "#3F4921", "#C0717C", "#CBD588", "#5F7FC7",
+                     "#673770", "#D3D93E", "#38333E", "#508578", "#D7C1B1", "#689030", "#AD6F3B", "#CD9BCD",
+                     "#D14285", "#6DDE88", "#652926", "#7FDCC0", "#C84248", "#8569D5", "#5E738F", "#D1A33D",
+                     "#8A7C64", "#599861")
+
 FlowSOM::PlotPies(condor$extras$FlowSOM_model, cellTypes = condor$clustering$FlowSOM_pca_orig_k_15$FlowSOM, colorPalette = cluster_palette) + ggtitle("Figure S3c - FlowSOM PiePlot")
 ```
 
-### Rastered FlowSOM clustering
-```{r}
-data <- cbind(condor$umap$pca_orig, condor$anno$cell_anno, condor$clustering$FlowSOM_pca_orig_k_15)
-```
-
-```{r}
-ggplot(data = data, aes(x = UMAP1, y = UMAP2, color = FlowSOM)) +
-  geom_point_rast(alpha = 0.2, size = 0.1) +
-  theme_bw() +
-  theme(aspect.ratio = 1, panel.grid = element_blank()) +
-  scale_color_manual(values = cluster_palette) + 
-  guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) +
-  ggtitle("Figure S3b - UMAP FlowSOM Clustering")
-```
-
-```{r, fig.height=7}
-HM_markers(input = cbind(condor$expr$orig, condor$clustering$FlowSOM_pca_orig_k_15), 
-           group = "FlowSOM",
-           maxvalue = 2, 
-           title = "Figure S3d - Marker expression FlowSOM clustering", 
-           cluster_rows = TRUE)
+```{r, fig.height=7, fig.width=7}
+plot_marker_HM(fcd = condor, 
+               expr_slot = "orig", 
+               cluster_slot = "FlowSOM_pca_orig_k_15", 
+               cluster_var = "FlowSOM",
+               maxvalue = 2, 
+               marker_to_exclude = c("FSC-A", "SSC-A"),
+               title = "Figure S3e - Marker expression FlowSOM clustering", 
+               cluster_rows = TRUE)
 ```
 
 # Plot single markers - Figure S2e
@@ -240,38 +236,17 @@ marker_exp_plot <- list()
 
 for (marker in colnames(condor$expr$orig)[3:28]) {
   
-  marker_exp_plot[[marker]] <- plot_marker(data = cbind(condor$umap$pca_orig, condor$expr$orig), 
-                                           param = marker, 
-                                           order = T, 
-                                           title = marker, 
-                                           dim_red = "UMAP", facet_by_variable = FALSE) + theme(legend.position = "none")
-  
-}
-
-ggarrange(plotlist = marker_exp_plot)
-```
-
-## Raster Version
-
-```{r, fig.width=20, fig.height=20}
-colors <- colorRampPalette(rev(brewer.pal(11, 'Spectral'))[-6])(100)
-```
-
-```{r, fig.width=20, fig.height=20}
-marker_exp_plot <- list()
-
-data <- cbind(condor$umap$pca_orig, condor$expr$orig)
-
-for (marker in colnames(data)[5:30]) {
-  tmp <- data
-  
-  colnames(tmp)[colnames(data) == marker] <- "int"
-  
-  marker_exp_plot[[marker]] <- ggplot(data = tmp, aes(x = UMAP1, y = UMAP2, color = int)) +
-    geom_point_rast(alpha = 0.2, size = 0.1) +
-    theme_bw() +
-    theme(aspect.ratio = 1, panel.grid = element_blank()) + 
-    scale_color_gradientn(colours = colors) + ggtitle(marker)
+  marker_exp_plot[[marker]] <- plot_dim_red(fcd = condor, 
+                                            expr_slot = "orig", 
+                                            reduction_method = "umap", 
+                                            reduction_slot = "pca_orig", 
+                                            cluster_slot = NULL,
+                                            param = marker, 
+                                            order = F, 
+                                            title = marker, 
+                                            facet_by_variable = FALSE, 
+                                            raster = TRUE, 
+                                            remove_guide = TRUE)
   
 }
 
@@ -281,88 +256,74 @@ ggarrange(plotlist = marker_exp_plot)
 # Metaclustering
 ```{r}
 condor <- metaclustering(fcd = condor, 
-                         clustering = "Phenograph_pca_orig_k_60", 
-                         name_col = "Phenograph", 
-                         name_out = "metaclusters", 
-                         metaclusters = c("1" = "Classical Monocytes", 
-                                          "2" = "B cells", 
-                                          "3" = "CD8 CD45RA+ CD127-", 
-                                          "4" = "CD8 CD45RA+ CD127-", 
-                                          "5" = "NK bright", 
-                                          "6" = "CD8 CD45RA- CD127+", 
-                                          "7" = "CD4 CD45RA+ CD127+", 
-                                          "8" = "CD8 CD45RA+ CD127+", 
-                                          "9" = "CD4 CD127-", 
-                                          "10" = "CD16- Monocytes", 
-                                          "11" = "CD4 CD45RA- CD127+", 
-                                          "12" = "Unconventional T cells", 
-                                          "13" = "NK dim",
-                                          "14" = "Classical Monocytes",
-                                          "15" = "pDCs",
-                                          "16" = "Classical Monocytes",
-                                          "17" = "Classical Monocytes",
-                                          "18" = "CD4 CD25+",
-                                          "19" = "Unconventional T cells",
-                                          "20" = "CD8 CD45RA- CD127+",
-                                          "21" = "Basophils",
-                                          "22" = "CD8 CD45RA- CD127+",
-                                          "23" = "NK bright"))
+                         cluster_slot = "phenograph_pca_orig_k_60",
+                         cluster_var = "Phenograph", 
+                         cluster_var_new = "metaclusters", 
+                         metaclusters = c("1" = "Classical Monocytes",
+                                          "2" = "CD4 CD45RA+ CD127+",
+                                          "3" = "CD8 CD45RA+ CD127+", 
+                                          "4" = "NK dim",
+                                          "5" = "CD8 CD45RA+ CD127-",
+                                          "6" = "Classical Monocytes",
+                                          "7" = "Unconventional T cells", 
+                                          "8" = "CD4 CD45RA- CD127+",
+                                          "9" = "CD16+ Monocytes",
+                                          "10" = "CD4 CD127-",
+                                          "11" = "Classical Monocytes", 
+                                          "12" = "CD8 CD45RA- CD127+", 
+                                          "13" = "CD8 CD45RA- CD127+",
+                                          "14" = "NK bright",
+                                          "15" = "CD8 CD45RA+ CD127-",
+                                          "16" = "CD4 CD25+",
+                                          "17" = "B cells",
+                                          "18" = "Unconventional T cells",
+                                          "19" = "Classical Monocytes",
+                                          "20" = "pDCs",
+                                          "21" = "CD8 CD45RA+ CD127+",
+                                          "22" = "Basophils",
+                                          "23" = "Mixed",
+                                          "24" = "B cells",
+                                          "25" = "NK bright"))
 ```
 
-```{r}
-plot_marker(data = cbind(condor$umap$pca_orig, condor$clustering$Phenograph_pca_orig_k_60), 
-            param = "metaclusters", 
-            order = T, 
-            title = "Figure 2f - UMAP Metaclustering", 
-            dim_red = "UMAP", 
-            facet_by_variable = FALSE)
+```{r, fig.height=5, fig.width=5}
+plot_dim_red(fcd = condor, 
+             expr_slot = "orig", 
+             reduction_method = "umap", 
+             reduction_slot = "pca_orig", 
+             cluster_slot = "phenograph_pca_orig_k_60",
+             param = "metaclusters", 
+             order = T, 
+             title = "Figure 2f - UMAP Metaclustering", 
+             facet_by_variable = FALSE, 
+             raster = TRUE, 
+             color_discrete = rev(cluster_palette), label_clusters = FALSE)
 ```
 
-```{r}
-data <- cbind(condor$umap$pca_orig, condor$anno$cell_anno, condor$clustering$Phenograph_pca_orig_k_60)
+```{r, fig.height=7, fig.width=7}
+plot_marker_HM(fcd = condor, 
+               expr_slot = "orig", 
+               cluster_slot = "phenograph_pca_orig_k_60", 
+               cluster_var = "metaclusters",
+               maxvalue = 2, 
+               marker_to_exclude = c("FSC-A", "SSC-A"),
+               title = "Figure 2f - Marker expression Metaclusters", 
+               cluster_rows = TRUE)
 ```
 
-```{r}
-ggplot(data = data, aes(x = UMAP1, y = UMAP2, color = metaclusters)) +
-  geom_point_rast(alpha = 0.2, size = 0.1) +
-  theme_bw() +
-  theme(aspect.ratio = 1, panel.grid = element_blank()) +
-  scale_color_manual(values = rev(cluster_palette)) + 
-  guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) + 
-  ggtitle("Figure 2f - UMAP Metaclustering")
-```
+# tSNE visualization clusters
 
-```{r, fig.height=8}
-HM_markers(input = cbind(condor$expr$orig, condor$clustering$Phenograph_pca_orig_k_60), 
-           group = "metaclusters",
-           maxvalue = 2, 
-           title = "Figure 2f - Marker expression Metaclusters", 
-           cluster_rows = TRUE)
-```
-
-# tSNE visualization clusters and metaclusters
-
-```{r}
-plot_marker(data = cbind(condor$tSNE$pca_orig, condor$clustering$Phenograph_pca_orig_k_60), 
-            param = "Phenograph", 
-            order = T, 
-            title = "Figure S3e - tSNE Phenograph", 
-            dim_red = "tSNE", 
-            facet_by_variable = FALSE)
-```
-
-```{r}
-data <- cbind(condor$tSNE$pca_orig, condor$anno$cell_anno, condor$clustering$Phenograph_pca_orig_k_60)
-```
-
-```{r}
-ggplot(data = data, aes(x = tSNE1, y = tSNE2, color = Phenograph)) +
-  geom_point_rast(alpha = 0.2, size = 0.1) +
-  theme_bw() +
-  theme(aspect.ratio = 1, panel.grid = element_blank()) +
-  scale_color_manual(values = cluster_palette) + 
-  guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) +
-  ggtitle("Figure S3e - tSNE Phenograph")
+```{r, fig.height=5, fig.width=5}
+plot_dim_red(fcd = condor, 
+             expr_slot = "orig", 
+             reduction_method = "tSNE", 
+             reduction_slot = "pca_orig", 
+             cluster_slot = "phenograph_pca_orig_k_60",
+             param = "Phenograph", 
+             order = T, 
+             title = "Figure S3e - tSNE Phenograph", 
+             facet_by_variable = FALSE, 
+             raster = TRUE)
 ```
 
 # Session Info

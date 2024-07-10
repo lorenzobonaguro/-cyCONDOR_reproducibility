@@ -1,0 +1,345 @@
+---
+title: "Benchmarking_CATALYST"
+output: html_document
+date: "2024-04-29"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Packages
+```{r, eval= TRUE}
+#Preparations
+if (!require("dplyr", quietly = TRUE))
+    install.packages("dplyr") # v 1.1.3
+if (!require("flowCore", quietly = TRUE))
+    require(BiocManager)
+  BiocManager::install("flowCore", version= "3.17", update= FALSE)
+if (!require("CATALYST", quietly = TRUE))
+    require(BiocManager)
+    BiocManager::install("CATALYST", update= FALSE)
+if(!require("tictoc", quietly= TRUE))
+  install.packages("tictoc")
+
+library(tictoc)
+library(dplyr)
+library(flowCore)
+library(CATALYST)
+library(reshape2) 
+library(ggplot2)
+library(ggsci)
+
+```
+
+#set directory
+```{r}
+
+dir <- "/data/analysis/data/Figure 1 - Overview/"
+```
+
+```{r}
+time_100 <- list()
+
+for (i in seq(1:10)) {
+
+  tic()
+    #data import
+    meta.dat <- read.csv(paste0(dir,"FC_metadata.csv"))
+    sce <- prepData(x= paste0(dir,"fcs/"),
+                   md= meta.dat,
+                   md_cols = list(file= "filename", id= "sample_ID", factors= c("group")),
+                   transform= TRUE, #true arcsinh transformation 
+                   FACS= TRUE) 
+    
+    #downsampling
+    ceil <- 100
+    set.seed(91)  
+    sampled_cells <- sample(c(1: ncol(assay(sce))), size = ceil)
+    sce <- sce[, sampled_cells]
+    
+    #dimensionality reduction
+    set.seed(91)
+    sce <- runDR(sce, dr= "PCA", 
+          features = rownames(sce),
+          assay= "exprs")
+    
+    sce <- runDR(sce, dr= "UMAP", 
+          features = rownames(sce), # use all features
+          assay= "exprs")
+    
+    #FlowSOM clustering
+    sce <- cluster(sce, features = NULL, 
+        xdim = 10, ydim = 10, maxK = 14, 
+        verbose = FALSE, seed = 1)  
+
+
+  time_100[[i]] <- toc()
+
+}
+```
+
+```{r}
+time_1000 <- list()
+
+for (i in seq(1:10)) {
+
+  tic()
+    #data import
+    meta.dat <- read.csv(paste0(dir,"FC_metadata.csv"))
+    sce <- prepData(x= paste0(dir,"fcs/"),
+                   md= meta.dat,
+                   md_cols = list(file= "filename", id= "sample_ID", factors= c("group")),
+                   transform= TRUE, #true arcsinh transformation 
+                   FACS= TRUE) 
+    
+    #downsampling
+    ceil <- 1000
+    set.seed(91)  
+    sampled_cells <- sample(c(1: ncol(assay(sce))), size = ceil)
+    sce <- sce[, sampled_cells]
+    
+    #dimensionality reduction
+    set.seed(91)
+    sce <- runDR(sce, dr= "PCA", 
+          features = rownames(sce),
+          assay= "exprs")
+    
+    sce <- runDR(sce, dr= "UMAP", 
+          features = rownames(sce), # use all features
+          assay= "exprs")
+    
+    #FlowSOM clustering
+    sce <- cluster(sce, features = NULL, 
+        xdim = 10, ydim = 10, maxK = 14, 
+        verbose = FALSE, seed = 1)  
+
+
+  time_1000[[i]] <- toc()
+
+}
+```
+
+```{r}
+time_10000 <- list()
+
+for (i in seq(1:10)) {
+
+  tic()
+    #data import
+    meta.dat <- read.csv(paste0(dir,"FC_metadata.csv"))
+    sce <- prepData(x= paste0(dir,"fcs/"),
+                   md= meta.dat,
+                   md_cols = list(file= "filename", id= "sample_ID", factors= c("group")),
+                   transform= TRUE, #true arcsinh transformation 
+                   FACS= TRUE) 
+    
+    #downsampling
+    ceil <- 10000
+    set.seed(91)  
+    sampled_cells <- sample(c(1: ncol(assay(sce))), size = ceil)
+    sce <- sce[, sampled_cells]
+    
+    #dimensionality reduction
+    set.seed(91)
+    sce <- runDR(sce, dr= "PCA", 
+          features = rownames(sce),
+          assay= "exprs")
+    
+    sce <- runDR(sce, dr= "UMAP", 
+          features = rownames(sce), # use all features
+          assay= "exprs")
+    
+    #FlowSOM clustering
+    sce <- cluster(sce, features = NULL, 
+        xdim = 10, ydim = 10, maxK = 14, 
+        verbose = FALSE, seed = 1)  
+
+
+  time_10000[[i]] <- toc()
+
+}
+```
+
+```{r}
+time_100000 <- list()
+
+for (i in seq(1:10)) {
+
+  tic()
+    #data import
+    meta.dat <- read.csv(paste0(dir,"FC_metadata.csv"))
+    sce <- prepData(x= paste0(dir,"fcs/"),
+                   md= meta.dat,
+                   md_cols = list(file= "filename", id= "sample_ID", factors= c("group")),
+                   transform= TRUE, #true arcsinh transformation 
+                   FACS= TRUE) 
+    
+    #downsampling
+    ceil <- 100000
+    set.seed(91)  
+    sampled_cells <- sample(c(1: ncol(assay(sce))), size = ceil)
+    sce <- sce[, sampled_cells]
+    
+    #dimensionality reduction
+    set.seed(91)
+    sce <- runDR(sce, dr= "PCA", 
+          features = rownames(sce),
+          assay= "exprs")
+    
+    sce <- runDR(sce, dr= "UMAP", 
+          features = rownames(sce), # use all features
+          assay= "exprs")
+    
+    #FlowSOM clustering
+    sce <- cluster(sce, features = NULL, 
+        xdim = 10, ydim = 10, maxK = 14, 
+        verbose = FALSE, seed = 1)  
+
+
+  time_100000[[i]] <- toc()
+
+}
+```
+
+
+```{r}
+time_1000000 <- list()
+
+for (i in seq(1:10)) {
+
+  tic()
+    #data import
+    meta.dat <- read.csv(paste0(dir,"FC_metadata.csv"))
+    sce <- prepData(x= paste0(dir,"fcs/"),
+                   md= meta.dat,
+                   md_cols = list(file= "filename", id= "sample_ID", factors= c("group")),
+                   transform= TRUE, #true arcsinh transformation 
+                   FACS= TRUE) 
+    
+    #downsampling
+    ceil <- 1000000
+    set.seed(91)  
+    sampled_cells <- sample(c(1: ncol(assay(sce))), size = ceil)
+    sce <- sce[, sampled_cells]
+    
+    #dimensionality reduction
+    set.seed(91)
+    sce <- runDR(sce, dr= "PCA", 
+          features = rownames(sce),
+          assay= "exprs")
+    
+    sce <- runDR(sce, dr= "UMAP", 
+          features = rownames(sce), # use all features
+          assay= "exprs")
+    
+    #FlowSOM clustering
+    sce <- cluster(sce, features = NULL, 
+        xdim = 10, ydim = 10, maxK = 14, 
+        verbose = FALSE, seed = 1)  
+
+
+  time_1000000[[i]] <- toc()
+
+}
+```
+
+
+# Save the enviroment
+```{r}
+remove(cell.dat, data.list, meta.dat, ceil, cellular.cols, i, dir, pca.cols, to.transform)
+
+save.image(file = paste0("../data/", Sys.Date(), "_CATALYST_Benchmark.RData"))
+
+#load("/data/analysis/data/Figure 1 - Overview/240206_Benchmark.RData")
+```
+
+# Plotting the results
+```{r}
+time_100_vector <- c()
+
+for (i in 1:length(time_100)) {
+  
+  tmp <- time_100[[i]]
+  
+  tmp <- tmp$toc - tmp$tic
+  
+  time_100_vector <- c(time_100_vector, tmp)
+  
+}
+
+time_1000_vector <- c()
+
+for (i in 1:length(time_1000)) {
+  
+  tmp <- time_1000[[i]]
+  
+  tmp <- tmp$toc - tmp$tic
+  
+  time_1000_vector <- c(time_1000_vector, tmp)
+  
+}
+
+time_10000_vector <- c()
+
+for (i in 1:length(time_10000)) {
+
+  tmp <- time_10000[[i]]
+
+  tmp <- tmp$toc - tmp$tic
+
+  time_10000_vector <- c(time_10000_vector, tmp)
+
+}
+
+time_100000_vector <- c()
+
+for (i in 1:length(time_100000)) {
+
+  tmp <- time_100000[[i]]
+
+  tmp <- tmp$toc - tmp$tic
+
+  time_100000_vector <- c(time_100000_vector, tmp)
+
+}
+
+time_1000000_vector <- c()
+
+for (i in 1:length(time_1000000)) {
+
+  tmp <- time_1000000[[i]]
+
+  tmp <- tmp$toc - tmp$tic
+
+  time_1000000_vector <- c(time_1000000_vector, tmp)
+
+}
+
+rm(i)
+```
+
+
+```{r}
+bm_data <- data.frame(time_100 = time_100_vector,
+                      time_1000 = time_1000_vector,
+                      time_10000 = time_10000_vector,
+                      time_100000 = time_100000_vector,
+                      time_1000000 = time_1000000_vector)
+
+
+bm_melt <- melt(bm_data, value.name = "time")
+
+bm_melt$cell_count <- as.numeric(sapply(strsplit(as.character(bm_melt$variable), "_"), function(x){return(x[[2]])}))
+```
+
+## Plotting
+```{r}
+set.seed(91)
+ggplot(bm_melt, aes(x = cell_count, y = time, color = variable)) +
+  geom_jitter(size = 3) +
+  scale_x_log10() +
+  scale_y_log10() +
+  scale_color_aaas() +
+  theme_bw() + theme(aspect.ratio = 1)
+```

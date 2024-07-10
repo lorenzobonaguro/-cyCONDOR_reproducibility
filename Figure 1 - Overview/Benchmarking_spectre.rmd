@@ -1,0 +1,355 @@
+---
+title: "Benchmarking_spectre"
+output: html_document
+date: "2024-04-11"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Packages
+```{r}
+#library(devtools)
+#devtools::install_github("immunedynamics/spectre") # v1.1.0
+library(Spectre)
+#install.packages("tictoc")
+library(tictoc)
+library(reshape2)
+library(ggplot2)
+library(ggsci)
+```
+# set directory
+```{r}
+dir <- "/data/analysis/data/Figure 1 - Overview/"
+```
+
+
+# Spectre
+
+```{r}
+time_100 <- list()
+
+for (i in seq(1:10)) {
+
+  tic()
+
+  #import data
+  data.list <- Spectre::read.files(file.loc = paste0(dir,"fcs/"),
+                                   file.type = ".fcs",
+                                   do.embed.file.names = TRUE)
+  # Merge data
+  cell.dat <- Spectre::do.merge.files(dat = data.list)
+  
+  #downsample cells
+  ceil <- 100
+  cell.dat <- do.subsample(cell.dat, ceil)
+  
+  #define columns for the the transformation
+  to.transform <- names(cell.dat)[c(1:12)] # automatic way to select only parameters?
+  # perform a logicle transformation
+  cell.dat <- do.logicle(dat=cell.dat, use.cols = to.transform)
+  
+  #read in meta data
+  meta.dat <- fread(paste0(dir,"FC_metadata.csv"))
+  #add meta data
+  cell.dat <- do.add.cols(cell.dat, base.col= "FileName", add.dat= meta.dat, add.by = "filename")
+  
+  #define columns with transformed parameters
+  cellular.cols <- names(cell.dat)[c(16:27)] 
+  # pca
+  cell.dat <- run.pca(cell.dat, use.cols= cellular.cols, scale = FALSE, add.pca.col= TRUE, pca.lite= TRUE)
+  #define columns with PC coordinates
+  pca.cols <- names(cell.dat)[c(33:length(names(cell.dat)))] 
+  # umap
+  cell.dat <- run.umap(dat=cell.dat, use.cols= pca.cols)
+  
+  # phenograph clustering
+  cell.dat <- run.phenograph(dat = cell.dat, use.cols = pca.cols, k= 30)
+
+  time_100[[i]] <- toc()
+
+}
+```
+
+```{r}
+time_1000 <- list()
+
+for (i in seq(1:10)) {
+
+  tic()
+
+  #import data
+  data.list <- Spectre::read.files(file.loc = paste0(dir,"fcs/"),
+                                   file.type = ".fcs",
+                                   do.embed.file.names = TRUE)
+  # Merge data
+  cell.dat <- Spectre::do.merge.files(dat = data.list)
+  
+  #downsample cells
+  ceil <- 1000
+  cell.dat <- do.subsample(cell.dat, ceil)
+  
+  #define columns for the the transformation
+  to.transform <- names(cell.dat)[c(1:12)] # automatic way to select only parameters?
+  # perform a logicle transformation
+  cell.dat <- do.logicle(dat=cell.dat, use.cols = to.transform)
+  
+  #read in meta data
+  meta.dat <- fread(paste0(dir,"FC_metadata.csv"))
+  #add meta data
+  cell.dat <- do.add.cols(cell.dat, base.col= "FileName", add.dat= meta.dat, add.by = "filename")
+  
+  #define columns with transformed parameters
+  cellular.cols <- names(cell.dat)[c(16:27)] 
+  # pca
+  cell.dat <- run.pca(cell.dat, use.cols= cellular.cols, scale = FALSE, add.pca.col= TRUE, pca.lite= TRUE)
+  #define columns with PC coordinates
+  pca.cols <- names(cell.dat)[c(33:length(names(cell.dat)))] 
+  # umap
+  cell.dat <- run.umap(dat=cell.dat, use.cols= pca.cols)
+  
+  # phenograph clustering
+  cell.dat <- run.phenograph(dat = cell.dat, use.cols = pca.cols, k= 30)
+
+  time_1000[[i]] <- toc()
+
+}
+```
+
+
+```{r}
+time_10000 <- list()
+
+for (i in seq(1:10)) {
+
+  tic()
+
+  #import data
+  data.list <- Spectre::read.files(file.loc = paste0(dir,"fcs/"),
+                                   file.type = ".fcs",
+                                   do.embed.file.names = TRUE)
+  # Merge data
+  cell.dat <- Spectre::do.merge.files(dat = data.list)
+  
+  #downsample cells
+  ceil <- 10000
+  cell.dat <- do.subsample(cell.dat, ceil)
+  
+  #define columns for the the transformation
+  to.transform <- names(cell.dat)[c(1:12)] # automatic way to select only parameters?
+  # perform a logicle transformation
+  cell.dat <- do.logicle(dat=cell.dat, use.cols = to.transform)
+  
+  #read in meta data
+  meta.dat <- fread(paste0(dir,"FC_metadata.csv"))
+  #add meta data
+  cell.dat <- do.add.cols(cell.dat, base.col= "FileName", add.dat= meta.dat, add.by = "filename")
+  
+  #define columns with transformed parameters
+  cellular.cols <- names(cell.dat)[c(16:27)] 
+  # pca
+  cell.dat <- run.pca(cell.dat, use.cols= cellular.cols, scale = FALSE, add.pca.col= TRUE, pca.lite= TRUE)
+  #define columns with PC coordinates
+  pca.cols <- names(cell.dat)[c(33:length(names(cell.dat)))] 
+  # umap
+  cell.dat <- run.umap(dat=cell.dat, use.cols= pca.cols)
+  
+  # phenograph clustering
+  cell.dat <- run.phenograph(dat = cell.dat, use.cols = pca.cols, k= 30)
+
+  time_10000[[i]] <- toc()
+
+}
+```
+
+
+
+```{r}
+time_100000 <- list()
+
+for (i in seq(1:10)) {
+
+  tic()
+
+  #import data
+  data.list <- Spectre::read.files(file.loc = paste0(dir,"fcs/"),
+                                   file.type = ".fcs",
+                                   do.embed.file.names = TRUE)
+  # Merge data
+  cell.dat <- Spectre::do.merge.files(dat = data.list)
+  
+  #downsample cells
+  ceil <- 100000
+  cell.dat <- do.subsample(cell.dat, ceil)
+  
+  #define columns for the the transformation
+  to.transform <- names(cell.dat)[c(1:12)] # automatic way to select only parameters?
+  # perform a logicle transformation
+  cell.dat <- do.logicle(dat=cell.dat, use.cols = to.transform)
+  
+  #read in meta data
+  meta.dat <- fread(paste0(dir,"FC_metadata.csv"))
+  #add meta data
+  cell.dat <- do.add.cols(cell.dat, base.col= "FileName", add.dat= meta.dat, add.by = "filename")
+  
+  #define columns with transformed parameters
+  cellular.cols <- names(cell.dat)[c(16:27)] 
+  # pca
+  cell.dat <- run.pca(cell.dat, use.cols= cellular.cols, scale = FALSE, add.pca.col= TRUE, pca.lite= TRUE)
+  #define columns with PC coordinates
+  pca.cols <- names(cell.dat)[c(33:length(names(cell.dat)))] 
+  # umap
+  cell.dat <- run.umap(dat=cell.dat, use.cols= pca.cols)
+  
+  # phenograph clustering
+  cell.dat <- run.phenograph(dat = cell.dat, use.cols = pca.cols, k= 30)
+
+  time_100000[[i]] <- toc()
+
+}
+```
+
+
+```{r}
+time_1000000 <- list()
+
+for (i in seq(1:10)) {
+
+  tic()
+
+  #import data
+  data.list <- Spectre::read.files(file.loc = paste0(dir,"fcs/"),
+                                   file.type = ".fcs",
+                                   do.embed.file.names = TRUE)
+  # Merge data
+  cell.dat <- Spectre::do.merge.files(dat = data.list)
+  
+  #downsample cells
+  ceil <- 1000000
+  cell.dat <- do.subsample(cell.dat, ceil)
+  
+  #define columns for the the transformation
+  to.transform <- names(cell.dat)[c(1:12)] # automatic way to select only parameters?
+  # perform a logicle transformation
+  cell.dat <- do.logicle(dat=cell.dat, use.cols = to.transform)
+  
+  #read in meta data
+  meta.dat <- fread(paste0(dir,"FC_metadata.csv"))
+  #add meta data
+  cell.dat <- do.add.cols(cell.dat, base.col= "FileName", add.dat= meta.dat, add.by = "filename")
+  
+  #define columns with transformed parameters
+  cellular.cols <- names(cell.dat)[c(16:27)] 
+  # pca
+  cell.dat <- run.pca(cell.dat, use.cols= cellular.cols, scale = FALSE, add.pca.col= TRUE, pca.lite= TRUE)
+  #define columns with PC coordinates
+  pca.cols <- names(cell.dat)[c(33:length(names(cell.dat)))] 
+  # umap
+  cell.dat <- run.umap(dat=cell.dat, use.cols= pca.cols)
+  
+  # phenograph clustering
+  cell.dat <- run.phenograph(dat = cell.dat, use.cols = pca.cols, k= 30)
+
+  time_1000000[[i]] <- toc()
+
+}
+```
+
+# Save the enviroment
+```{r}
+remove(cell.dat, data.list, meta.dat, ceil, cellular.cols, i, dir, pca.cols, to.transform)
+
+save.image(file = paste0("../data/", Sys.Date(), "_Spectre_Benchmark.RData"))
+
+#load("/data/analysis/data/Figure 1 - Overview/240206_Benchmark.RData")
+```
+
+# Plotting the results
+```{r}
+time_100_vector <- c()
+
+for (i in 1:length(time_100)) {
+  
+  tmp <- time_100[[i]]
+  
+  tmp <- tmp$toc - tmp$tic
+  
+  time_100_vector <- c(time_100_vector, tmp)
+  
+}
+
+time_1000_vector <- c()
+
+for (i in 1:length(time_1000)) {
+  
+  tmp <- time_1000[[i]]
+  
+  tmp <- tmp$toc - tmp$tic
+  
+  time_1000_vector <- c(time_1000_vector, tmp)
+  
+}
+
+time_10000_vector <- c()
+
+for (i in 1:length(time_10000)) {
+
+  tmp <- time_10000[[i]]
+
+  tmp <- tmp$toc - tmp$tic
+
+  time_10000_vector <- c(time_10000_vector, tmp)
+
+}
+
+time_100000_vector <- c()
+
+for (i in 1:length(time_100000)) {
+
+  tmp <- time_100000[[i]]
+
+  tmp <- tmp$toc - tmp$tic
+
+  time_100000_vector <- c(time_100000_vector, tmp)
+
+}
+
+time_1000000_vector <- c()
+
+for (i in 1:length(time_1000000)) {
+
+  tmp <- time_1000000[[i]]
+
+  tmp <- tmp$toc - tmp$tic
+
+  time_1000000_vector <- c(time_1000000_vector, tmp)
+
+}
+
+rm(i)
+```
+
+
+```{r}
+bm_data <- data.frame(time_100 = time_100_vector,
+                      time_1000 = time_1000_vector,
+                      time_10000 = time_10000_vector,
+                      time_100000 = time_100000_vector,
+                      time_1000000 = time_1000000_vector)
+
+
+bm_melt <- melt(bm_data, value.name = "time")
+
+bm_melt$cell_count <- as.numeric(sapply(strsplit(as.character(bm_melt$variable), "_"), function(x){return(x[[2]])}))
+```
+
+## Plotting
+```{r}
+ggplot(bm_melt, aes(x = cell_count, y = time, color = variable)) +
+  geom_jitter(size = 3) +
+  scale_x_log10() +
+  scale_y_log10() +
+  scale_color_aaas() +
+  theme_bw() + theme(aspect.ratio = 1)
+```

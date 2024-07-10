@@ -1,0 +1,323 @@
+---
+title: "cyCONDOR benchmarking for comparison with CATALYST"
+output: html_document
+author: Sophie Mueller
+date: "`r Sys.Date()`"
+---
+# Libraries
+```{r}
+install.packages("tictoc")
+
+library(cyCONDOR)
+library(tictoc)
+library(reshape2)
+library(ggplot2)
+library(ggsci)
+```
+# set directory
+
+```{r}
+dir <- "/data/analysis/data/Figure 1 - Overview/"
+```
+
+```{r}
+condor <- prep_fcd(FCSpath = paste0(dir,"fcs/"),
+                     ceil = 100,
+                     useCSV = FALSE,
+                     transformation = "a",
+                     remove_param = c("InFile"),
+                     anno_table = paste0(dir,"FC_metadata.csv"),
+                     filename_col = "filename",
+                     seed = 91)
+```
+
+
+
+# Loading the data
+```{r}
+time_100 <- list()
+
+for (i in seq(1:10)) {
+
+  tic()
+
+  condor <- prep_fcd(FCSpath = paste0(dir,"fcs/"),
+                     ceil = 100,
+                     useCSV = FALSE,
+                     transformation = "a",
+                     remove_param = c("InFile"),
+                     anno_table = paste0(dir,"FC_metadata.csv"),
+                     filename_col = "filename",
+                     seed = 91)
+
+  condor <- runPCA(fcd = condor,
+                   data_slot = "orig",
+                 seed = 91)
+
+  condor <- runUMAP(fcd = condor,
+                  input_type = "pca",
+                  data_slot = "orig",
+                  seed = 91)
+
+  condor <- runFlowSOM(fcd = condor, 
+                   input_type = "expr", 
+                   data_slot = "orig", 
+                   num_clusters = 14, 
+                   seed = 91, 
+                   prefix = NULL, 
+                   ret_model = TRUE)
+
+  time_100[[i]] <- toc()
+
+}
+```
+
+```{r}
+time_1000 <- list()
+
+for (i in seq(1:10)) {
+
+  tic()
+
+  condor <- prep_fcd(FCSpath = paste0(dir,"fcs/"),
+                     ceil = 1000,
+                     useCSV = FALSE,
+                     transformation = "a",
+                     remove_param = c("InFile"),
+                     anno_table =  paste0(dir,"FC_metadata.csv"),
+                     filename_col = "filename",
+                     seed = 91)
+
+  condor <- runPCA(fcd = condor,
+                   data_slot = "orig",
+                 seed = 91)
+
+  condor <- runUMAP(fcd = condor,
+                  input_type = "pca",
+                  data_slot = "orig",
+                  seed = 91)
+
+  condor <- runFlowSOM(fcd = condor, 
+                   input_type = "expr", 
+                   data_slot = "orig", 
+                   num_clusters = 14, 
+                   seed = 91, 
+                   prefix = NULL, 
+                   ret_model = TRUE)
+
+  time_1000[[i]] <- toc()
+
+}
+```
+
+```{r}
+time_10000 <- list()
+
+for (i in seq(1:10)) {
+
+  tic()
+
+  condor <- prep_fcd(FCSpath = paste0(dir,"fcs/"),
+                     ceil = 10000,
+                     useCSV = FALSE,
+                     transformation = "a",
+                     remove_param = c("InFile"),
+                     anno_table =  paste0(dir,"FC_metadata.csv"),
+                     filename_col = "filename",
+                     seed = 91)
+
+  condor <- runPCA(fcd = condor,
+                   data_slot = "orig",
+                 seed = 91)
+
+  condor <- runUMAP(fcd = condor,
+                  input_type = "pca",
+                  data_slot = "orig",
+                  seed = 91)
+  
+  condor <- runFlowSOM(fcd = condor, 
+                   input_type = "expr", 
+                   data_slot = "orig", 
+                   num_clusters = 14, 
+                   seed = 91, 
+                   prefix = NULL, 
+                   ret_model = TRUE)
+
+  time_10000[[i]] <- toc()
+
+}
+```
+
+```{r}
+time_100000 <- list()
+
+for (i in seq(1:10)) {
+
+  tic()
+
+  condor <- prep_fcd(FCSpath = paste0(dir,"fcs/"),
+                     ceil = 100000,
+                     useCSV = FALSE,
+                     transformation = "a",
+                     remove_param = c("InFile"),
+                     anno_table =  paste0(dir,"FC_metadata.csv"),
+                     filename_col = "filename",
+                     seed = 91)
+
+  condor <- runPCA(fcd = condor,
+                   data_slot = "orig",
+                 seed = 91)
+
+  condor <- runUMAP(fcd = condor,
+                  input_type = "pca",
+                  data_slot = "orig",
+                  seed = 91)
+
+  condor <- runFlowSOM(fcd = condor, 
+                   input_type = "expr", 
+                   data_slot = "orig", 
+                   num_clusters = 14,
+                   seed = 91, 
+                   prefix = NULL, 
+                   ret_model = TRUE)
+
+  time_100000[[i]] <- toc()
+
+}
+```
+
+```{r}
+time_1000000 <- list()
+
+for (i in seq(1:10)) {
+
+  tic()
+
+  condor <- prep_fcd(FCSpath = paste0(dir,"fcs/"),
+                     ceil = 1000000,
+                     useCSV = FALSE,
+                     transformation = "a",
+                     remove_param = c("InFile"),
+                     anno_table =  paste0(dir,"FC_metadata.csv"),
+                     filename_col = "filename",
+                     seed = 91)
+
+  condor <- runPCA(fcd = condor,
+                   data_slot = "orig",
+                 seed = 91)
+
+  condor <- runUMAP(fcd = condor,
+                  input_type = "pca",
+                  data_slot = "orig",
+                  seed = 91)
+
+  condor <- runFlowSOM(fcd = condor, 
+                   input_type = "expr", 
+                   data_slot = "orig", 
+                   num_clusters = 14, #which number to put?
+                   seed = 91, 
+                   prefix = NULL, 
+                   ret_model = TRUE)
+
+  time_1000000[[i]] <- toc()
+
+}
+```
+
+```{r}
+# rm(condor, i)
+```
+
+# Save the enviroment
+```{r, eval= TRUE}
+save.image(file = paste0("../data/", Sys.Date(), "_cyCONDOR_flowSOM_Benchmark.RData"))
+
+#load("/data/analysis/data/Figure 1 - Overview/240206_Benchmark.RData")
+```
+
+# Plotting the results
+```{r}
+time_100_vector <- c()
+
+for (i in 1:length(time_100)) {
+  
+  tmp <- time_100[[i]]
+  
+  tmp <- tmp$toc - tmp$tic
+  
+  time_100_vector <- c(time_100_vector, tmp)
+  
+}
+
+time_1000_vector <- c()
+
+for (i in 1:length(time_1000)) {
+  
+  tmp <- time_1000[[i]]
+  
+  tmp <- tmp$toc - tmp$tic
+  
+  time_1000_vector <- c(time_1000_vector, tmp)
+  
+}
+
+time_10000_vector <- c()
+
+for (i in 1:length(time_10000)) {
+  
+  tmp <- time_10000[[i]]
+  
+  tmp <- tmp$toc - tmp$tic
+  
+  time_10000_vector <- c(time_10000_vector, tmp)
+  
+}
+
+time_100000_vector <- c()
+
+for (i in 1:length(time_100000)) {
+  
+  tmp <- time_100000[[i]]
+  
+  tmp <- tmp$toc - tmp$tic
+  
+  time_100000_vector <- c(time_100000_vector, tmp)
+  
+}
+
+time_1000000_vector <- c()
+
+for (i in 1:length(time_1000000)) {
+  
+  tmp <- time_1000000[[i]]
+  
+  tmp <- tmp$toc - tmp$tic
+  
+  time_1000000_vector <- c(time_1000000_vector, tmp)
+  
+}
+
+rm(i)
+```
+
+```{r}
+bm_data <- data.frame(time_100 = time_100_vector,
+                      time_1000 = time_1000_vector,
+                      time_10000 = time_10000_vector,
+                      time_100000 = time_100000_vector,
+                      time_1000000 = time_1000000_vector)
+
+bm_melt <- melt(bm_data, value.name = "time")
+
+bm_melt$cell_count <- as.numeric(sapply(strsplit(as.character(bm_melt$variable), "_"), function(x){return(x[[2]])}))
+```
+
+## Plotting
+```{r}
+ggplot(bm_melt, aes(x = cell_count, y = time, color = variable)) +
+  geom_jitter(size = 3) +
+  scale_x_log10() +
+  scale_y_log10() +
+  scale_color_aaas() +
+  theme_bw() + theme(aspect.ratio = 1)
+```

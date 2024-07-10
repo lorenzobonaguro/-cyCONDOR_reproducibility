@@ -10,8 +10,8 @@ editor_options:
     wrap: 72
 ---
 
-```{r setup}
-library(condor)
+```{r setup, message=F, warning=F}
+library(cyCONDOR)
 library(ggplot2)
 library(ggpubr)
 ```
@@ -19,11 +19,11 @@ library(ggpubr)
 # Loading the data - Training Set
 
 ```{r}
-condor <- prep_fcd(FCSpath = "/home/user/data/Data/Figure 7 - Clinical Classifier/data_and_envs/CytoDX/", 
-                    ceil = 10000000, 
+condor <- prep_fcd(data_path = "/home/user/data/Data/Figure 7 - Clinical Classifier/data_and_envs/CytoDX/train/", 
+                    max_cell = 10000000, 
                     useCSV = FALSE, 
-                    transformation = "a", 
-                    remove_param = c("FSC-A","FSC-W","FSC-H","Time", "InFile"), 
+                    transformation = "auto_logi", 
+                    remove_param = c("FSC-A","FSC-W","FSC-H","Time"), 
                     anno_table = "/home/user/data/Data/Figure 7 - Clinical Classifier/data_and_envs/CytoDX/fcs_info_train.csv", 
                     filename_col = "fcsName",
                     seed = 91)
@@ -47,13 +47,20 @@ condor <- runUMAP(fcd = condor,
                   seed = 91)
 ```
 
-```{r}
-plot_marker(data = cbind(condor$umap$pca_orig, condor$anno$cell_anno), 
-            param = "Label", 
-            order = T, 
-            title = "Figure 7b - UMAP training data", 
-            dim_red = "UMAP", 
-            facet_by_variable = FALSE, dot_size = 1, apha = 1, color_discrete = c("#92278F", "#F15A29"))
+```{r, fig.height=5, fig.width=5}
+plot_dim_red(fcd = condor, 
+             expr_slot = "orig", 
+             reduction_method = "umap", 
+             reduction_slot = "pca_orig", 
+             cluster_slot = NULL,
+             param = "Label", 
+             order = T, 
+             title = "Figure 7b - UMAP training data", 
+             facet_by_variable = FALSE, 
+             color_discrete = c("#92278F", "#F15A29"), 
+             raster = TRUE, 
+             alpha = 1, 
+             dot_size = 1)
 ```
 
 ## Build the classifier model
@@ -81,18 +88,18 @@ condor <- train_classifier_model(fcd = condor,
 ```{r}
 condor$extras$classifier_model$train.Data.sample
 
-condor$extras$classifier_model$train.Data.cell
+condor$extras$classifier_model$train.Data.cell[1:10,]
 ```
 
 
 # Load the data - test Set
 
 ```{r}
-condor_test <- prep_fcd(FCSpath = "/home/user/data/Data/Figure 7 - Clinical Classifier/data_and_envs/CytoDX/", 
-                    ceil = 10000000, 
+condor_test <- prep_fcd(data_path = "/home/user/data/Data/Figure 7 - Clinical Classifier/data_and_envs/CytoDX/test/", 
+                      max_cell = 10000000, 
                     useCSV = FALSE, 
-                    transformation = "a", 
-                    remove_param = c("FSC-A","FSC-W","FSC-H","Time", "InFile"), 
+                    transformation = "auto_logi", 
+                    remove_param = c("FSC-A","FSC-W","FSC-H","Time"), 
                     anno_table = "/home/user/data/Data/Figure 7 - Clinical Classifier/data_and_envs/CytoDX/fcs_info_test.csv", 
                     filename_col = "fcsName",
                     seed = 91)
@@ -122,13 +129,13 @@ condor_test <- predict_classifier(fcd = condor_test,
 ```{r}
 condor_test$extras$classifier_prediction$xNew.Pred.sample
 
-condor_test$extras$classifier_prediction$xNew.Pred.cell
+condor_test$extras$classifier_prediction$xNew.Pred.cell[1:10,]
 ```
 
 # Visualize the results
 
 ## Training Data
-```{r}
+```{r, fig.height=5, fig.width=5}
 anno <- read.csv("/home/user/data/Data/Figure 7 - Clinical Classifier/data_and_envs/CytoDX/fcs_info_train.csv")
 
 tmp <- merge(x = condor$extras$classifier_model$train.Data.cell, y = anno, by.x = "sample", by.y = "fcsName")
@@ -142,7 +149,7 @@ ggplot(tmp, aes(x = sample, y = y.Pred.s0, color = Label)) +
   ggtitle("Figure S12b - Training prediction cell")
 ```
 
-```{r}
+```{r, fig.height=5, fig.width=5}
 tmp <- merge(x = condor$extras$classifier_model$train.Data.sample, y = anno, by.x = "sample", by.y = "fcsName")
 
 ggplot(tmp, aes(x = sample, y = y.Pred.s0, color = Label)) +
@@ -154,7 +161,7 @@ ggplot(tmp, aes(x = sample, y = y.Pred.s0, color = Label)) +
 ```
 
 ## Test Data
-```{r}
+```{r, fig.height=5, fig.width=5}
 anno <- read.csv("/home/user/data/Data/Figure 7 - Clinical Classifier/data_and_envs/CytoDX/fcs_info_test.csv")
 
 tmp <- merge(x = condor_test$extras$classifier_prediction$xNew.Pred.cell, y = anno, by.x = "sample", by.y = "fcsName")
@@ -170,7 +177,7 @@ ggplot(tmp, aes(x = sample, y = y.Pred.s0, color = Label)) +
   ggtitle("Figure 7c - Test prediction cell")
 ```
 
-```{r}
+```{r, fig.height=5, fig.width=5}
 tmp <- merge(x = condor_test$extras$classifier_prediction$xNew.Pred.sample, y = anno, by.x = "sample", by.y = "fcsName")
 
 tmp$sample <- factor(tmp$sample, levels = c("sample1.fcs", "sample2.fcs", "sample3.fcs",  "sample4.fcs",  "sample5.fcs",  "sample6.fcs",  "sample7.fcs",  "sample8.fcs",  "sample9.fcs", "sample10.fcs"))
@@ -184,7 +191,7 @@ ggplot(tmp, aes(x = sample, y = y.Pred.s0, color = Label)) +
 ```
 
 # Visualization of the decision three
-```{r}
+```{r, fig.height=7, fig.width=7}
 # Figure S12d - Decision tree
 
 library(CytoDx)

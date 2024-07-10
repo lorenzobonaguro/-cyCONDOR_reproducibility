@@ -10,29 +10,20 @@ editor_options:
     wrap: 72
 ---
 
-```{r setup}
-library(condor)
+```{r setup, warning=F, message=F}
+library(cyCONDOR)
 library(ggpubr)
 library(ggrastr)
-```
-
-```{r}
-cluster_palette <- c("#89C5DA", "#DA5724", "#74D944", "#CE50CA", "#3F4921", "#C0717C", "#CBD588", "#5F7FC7",
-                     "#673770", "#D3D93E", "#38333E", "#508578", "#D7C1B1", "#689030", "#AD6F3B", "#CD9BCD",
-                     "#D14285", "#6DDE88", "#652926", "#7FDCC0", "#C84248", "#8569D5", "#5E738F", "#D1A33D",
-                     "#8A7C64", "#599861", "#89C5DA", "#DA5724", "#74D944", "#CE50CA", "#3F4921", "#C0717C", "#CBD588", "#5F7FC7",
-                     "#673770", "#D3D93E", "#38333E", "#508578", "#D7C1B1", "#689030", "#AD6F3B", "#CD9BCD",
-                     "#D14285", "#6DDE88", "#652926", "#7FDCC0", "#C84248", "#8569D5", "#5E738F", "#D1A33D",
-                     "#8A7C64", "#599861")
+library(pheatmap)
 ```
 
 # Loading the data for training
 ```{r}
-condor_train <- prep_fcd(FCSpath = "/home/user/data/Data/Package/condor/.test_files/fcs/", 
-                        ceil = 5000, 
+condor_train <- prep_fcd(data_path = "./data_and_envs/fcs_train/", 
+                        max_cell = 5000, 
                         useCSV = FALSE, 
-                        transformation = "a", 
-                        remove_param = c("FSC-H", "SSC-H", "FSC-W", "SSC-W", "Time", "InFile", "live_dead"), 
+                        transformation = "auto_logi", 
+                        remove_param = c("FSC-H", "SSC-H", "FSC-W", "SSC-W", "Time", "live_dead"), 
                         anno_table = "./data_and_envs/metadata_train.csv", 
                         filename_col = "filename",
                         seed = 91)
@@ -48,11 +39,11 @@ condor_train$anno$cell_anno$group <- "train"
 
 # Loading the data
 ```{r}
-condor_test <- prep_fcd(FCSpath = "/home/user/data/Data/Package/condor/.test_files/fcs/", 
-                        ceil = 5000, 
+condor_test <- prep_fcd(data_path = "./data_and_envs/fcs_test/", 
+                        max_cell = 10000, 
                         useCSV = FALSE, 
-                        transformation = "a", 
-                        remove_param = c("FSC-H", "SSC-H", "FSC-W", "SSC-W", "Time", "InFile", "live_dead"), 
+                        transformation = "auto_logi", 
+                        remove_param = c("FSC-H", "SSC-H", "FSC-W", "SSC-W", "Time", "live_dead"), 
                         anno_table = "./data_and_envs/metadata_test.csv", 
                         filename_col = "filename",
                         seed = 91)
@@ -74,7 +65,7 @@ condor_train <- runUMAP(fcd = condor_train,
                         input_type = "expr", 
                         data_slot = "orig", 
                         seed = 91, 
-                        n_threads = 4, 
+                        nThreads = 4, 
                         ret_model = TRUE)
 ```
 
@@ -83,10 +74,10 @@ condor_train <- runUMAP(fcd = condor_train,
 condor_test <- learnUMAP(fcd = condor_test, 
                          input_type = "expr", 
                          data_slot = "orig", 
-                         model = condor_train$extras$umap_model, 
-                         n_epochs = 100, 
+                         fcd_model = condor_train, 
+                         nEpochs = 100, 
                          seed = 91, 
-                         n_threads = 4)
+                         nThreads = 4)
 ```
 
 # Train a classifier for the label transfer
@@ -94,81 +85,60 @@ condor_test <- learnUMAP(fcd = condor_test,
 condor_train <- runPhenograph(fcd = condor_train, 
                               input_type = "expr", 
                               data_slot = "orig", 
-                              k = 300, 
+                              k = 150, 
                               seed = 91)
 ```
 
 ## Visualization
-```{r}
-plot_marker(data = cbind(condor_train$umap$expr_orig, condor_train$clustering$Phenograph_expr_orig_k_300), 
-            param = "Phenograph", 
-            order = T, 
-            title = "Figure S9b -UMAP on the training dataset, Phenograph clusters", 
-            dim_red = "UMAP", 
-            facet_by_variable = FALSE, 
-            label_clusters = FALSE)
-```
-
-### Rastered Phenograph clustering
-```{r}
-data <- cbind(condor_train$umap$expr_orig, condor_train$anno$cell_anno, condor_train$clustering$Phenograph_expr_orig_k_300)
-```
-
-```{r}
-ggplot(data = data, aes(x = UMAP1, y = UMAP2, color = Phenograph)) +
-  geom_point_rast(alpha = 0.2, size = 0.1) +
-  theme_bw() +
-  theme(aspect.ratio = 1, panel.grid = element_blank()) +
-  scale_color_manual(values = cluster_palette) + 
-  guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) + 
-  ggtitle("Figure S9b -UMAP on the training dataset, Phenograph clusters")
+```{r, fig.height=5, fig.width=5}
+plot_dim_red(fcd = condor_train, 
+             expr_slot = "orig", 
+             reduction_method = "umap", 
+             reduction_slot = "expr_orig", 
+             cluster_slot = "phenograph_expr_orig_k_150",
+             param = "Phenograph", 
+             order = T, 
+             title = "Figure S9b -UMAP on the training dataset, Phenograph clusters", 
+             facet_by_variable = FALSE, 
+             raster = TRUE)
 ```
 
 # Metaclustering
 ```{r}
 condor_train <- metaclustering(fcd = condor_train, 
-                               clustering = "Phenograph_expr_orig_k_300", 
-                               name_col = "Phenograph", 
-                               name_out = "metaclusters", 
-                               metaclusters = c("1" = "Classical Monocytes", 
-                                                "2" = "CD8 T", 
-                                                "3" = "CD4 T", 
+                               cluster_slot = "phenograph_expr_orig_k_150", 
+                               cluster_var = "Phenograph", 
+                               cluster_var_new = "metaclusters", 
+                               metaclusters = c("1" = "CD8 T", 
+                                                "2" = "Non-classical Monocytes", 
+                                                "3" = "Classical Monocytes", 
                                                 "4" = "Classical Monocytes", 
-                                                "5" = "NK", 
-                                                "6" = "CD8 T", 
-                                                "7" = "CD4 T", 
+                                                "5" = "CD8 T", 
+                                                "6" = "CD4 T", 
+                                                "7" = "Classical Monocytes", 
                                                 "8" = "CD4 T", 
-                                                "9" = "Non-classical Monocytes", 
-                                                "10" = "CD8 T", 
-                                                "11" = "Classical Monocytes", 
-                                                "12" = "B", 
-                                                "13" = "CD4 T",
-                                                "14" = "pDC"))
+                                                "9" = "CD8 T", 
+                                                "10" = "CD4 T", 
+                                                "11" = "CD4 T", 
+                                                "12" = "NK", 
+                                                "13" = "NK",
+                                                "14" = "B",
+                                                "15" = "CD4 T",
+                                                "16" = "Classical Monocytes",
+                                                "17" = "pDC"))
 ```
 
-```{r}
-plot_marker(data = cbind(condor_train$umap$expr_orig, condor_train$clustering$Phenograph_expr_orig_k_300), 
-            param = "metaclusters", 
-            order = T, 
-            title = "Figure 6b - UMAP on the training dataset, metaclusters", 
-            dim_red = "UMAP", 
-            facet_by_variable = FALSE, 
-            label_clusters = FALSE)
-```
-
-### Rastered metaclustering
-```{r}
-data <- cbind(condor_train$umap$expr_orig, condor_train$anno$cell_anno, condor_train$clustering$Phenograph_expr_orig_k_300)
-```
-
-```{r}
-ggplot(data = data, aes(x = UMAP1, y = UMAP2, color = metaclusters)) +
-  geom_point_rast(alpha = 0.2, size = 0.1) +
-  theme_bw() +
-  theme(aspect.ratio = 1, panel.grid = element_blank()) +
-  scale_color_manual(values = cluster_palette) + 
-  guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) + 
-  ggtitle("Figure 6b - UMAP on the training dataset, metaclusters")
+```{r, fig.height=5, fig.width=5}
+plot_dim_red(fcd = condor_train, 
+             expr_slot = "orig", 
+             reduction_method = "umap", 
+             reduction_slot = "expr_orig", 
+             cluster_slot = "phenograph_expr_orig_k_150",
+             param = "metaclusters", 
+             order = T, 
+             title = "Figure 6b - UMAP on the training dataset, metaclusters", 
+             facet_by_variable = FALSE, 
+             raster = TRUE)
 ```
 
 # Label transfer
@@ -178,19 +148,20 @@ ggplot(data = data, aes(x = UMAP1, y = UMAP2, color = metaclusters)) +
 condor_train <- train_transfer_model(fcd = condor_train, 
                                      data_slot = "orig", 
                                      input_type = "expr", 
-                                     label = condor_train$clustering$Phenograph_expr_orig_k_300$metaclusters, 
+                                     cluster_slot = "phenograph_expr_orig_k_150", 
+                                     cluster_var = "metaclusters",
                                      method = "knn", 
                                      tuneLength = 5, 
                                      trControl = caret::trainControl(method = "cv"), 
                                      seed = 91)
 ```
 
-```{r}
-condor_train$extras$lt_model$performace_plot + ggtitle("Figure S11a - kNN accuracy")
+```{r, fig.height=5, fig.width=5}
+condor_train$extras$lt_model$performance_plot + ggtitle("Figure S9c_meta - kNN accuracy")
 ```
 
 ```{r, fig.height=10, fig.width=10}
-# Figure S11b - kNN importance
+# Figure S9e - kNN importance
 
 condor_train$extras$lt_model$features_plot
 ```
@@ -200,7 +171,7 @@ condor_train$extras$lt_model$features_plot
 condor_test <- predict_labels(fcd = condor_test, 
                               data_slot = "orig", 
                               input_type = "expr", 
-                              model_object = condor_train, 
+                              fcd_model = condor_train, 
                               label = "label_pred", 
                               seed = 91)
 ```
@@ -210,19 +181,20 @@ condor_test <- predict_labels(fcd = condor_test,
 condor_train_fine <- train_transfer_model(fcd = condor_train, 
                                           data_slot = "orig", 
                                           input_type = "expr", 
-                                          label = condor_train$clustering$Phenograph_expr_orig_k_300$Phenograph, 
+                                          cluster_slot = "phenograph_expr_orig_k_150", 
+                                          cluster_var = "Phenograph",
                                           method = "knn", 
                                           tuneLength = 5, 
                                           trControl = caret::trainControl(method = "cv"), 
                                           seed = 91)
 ```
 
-```{r}
-condor_train_fine$extras$lt_model$performace_plot + ggtitle("Figure S10a - kNN accuracy")
+```{r, fig.height=5, fig.width=5}
+condor_train_fine$extras$lt_model$performance_plot + ggtitle("Figure S9d_cluster - kNN accuracy")
 ```
 
-```{r, fig.height=10, fig.width=10}
-# Figure S10b - kNN importance
+```{r, fig.height=15, fig.width=15}
+# Figure S10 - kNN importance
 
 condor_train_fine$extras$lt_model$features_plot
 ```
@@ -231,7 +203,7 @@ condor_train_fine$extras$lt_model$features_plot
 condor_test <- predict_labels(fcd = condor_test, 
                               data_slot = "orig", 
                               input_type = "expr", 
-                              model_object = condor_train_fine, 
+                              fcd_model = condor_train_fine, 
                               label = "label_pred_fine", 
                               seed = 91)
 ```
@@ -248,44 +220,71 @@ condor_test <- runPhenograph(fcd = condor_test,
 ## Metaclustering
 ```{r}
 condor_test <- metaclustering(fcd = condor_test, 
-                              clustering = "Phenograph_expr_orig_k_10", 
-                              name_col = "Phenograph", 
-                              name_out = "metaclusters", 
-                              metaclusters = c("1" = "CD8 T", 
-                                               "2" = "CD8 T", 
-                                               "3" = "Classical Monocytes", 
-                                               "4" = "CD4 T", 
-                                               "5" = "Classical Monocytes", 
+                              cluster_slot = "phenograph_expr_orig_k_10", 
+                              cluster_var = "Phenograph", 
+                              cluster_var_new = "metaclusters", 
+                              metaclusters = c("1" = "Classical Monocytes", 
+                                               "2" = "CD4 T", 
+                                               "3" = "CD8 T", 
+                                               "4" = "NK", 
+                                               "5" = "CD8 T", 
                                                "6" = "CD8 T", 
-                                               "7" = "NK", 
+                                               "7" = "Classical Monocytes", 
                                                "8" = "Classical Monocytes", 
-                                               "9" = "Classical Monocytes", 
+                                               "9" = "CD4 T", 
                                                "10" = "CD4 T", 
-                                               "11" = "NK", 
+                                               "11" = "Non-classical Monocytes", 
                                                "12" = "CD4 T", 
-                                               "13" = "CD4 T",
-                                               "14" = "CD4 T",
-                                               "15" = "CD8 T",
-                                               "16" = "Classical Monocytes",
-                                               "17" = "Non-classical Monocytes",
+                                               "13" = "Classical Monocytes",
+                                               "14" = "CD8 T",
+                                               "15" = "NK",
+                                               "16" = "CD8 T",
+                                               "17" = "B",
                                                "18" = "CD8 T",
-                                               "19" = "B",
-                                               "20" = "CD8 T",
-                                               "21" = "pDC"))
+                                               "19" = "Classical Monocytes",
+                                               "20" = "NK",
+                                               "21" = "pDC",
+                                               "22" = "CD8 T"))
 ```
 
 ```{r, fig.width=10, fig.height=10}
-confusion_HM(variables = condor_test$clustering$Phenograph_expr_orig_k_10$metaclusters, 
-             group = condor_test$clustering$label_pred$predicted_label, size = 30, title = "Figure 6f - confusion matrix")
+variables <- condor_test$clustering$phenograph_expr_orig_k_10$metaclusters 
+group <- condor_test$clustering$label_pred$predicted_label 
+size <- 30 
+title <- "Figure 6f - confusion matrix"
+
+# quantify cells of each sample per cluster
+cells_cluster <- cyCONDOR::confusionMatrix(paste0(variables),
+                                   paste0(group))
+
+cells_cluster <- cells_cluster[order(factor(rownames(cells_cluster),levels=c(0:nrow(cells_cluster)))),]
+
+cells_cluster <- cells_cluster[, order(colnames(cells_cluster))]
+
+cells_cluster <- as.matrix(cells_cluster)
+
+# calculate percentage of cells from sample per cluster
+scaled_cM <- round((cells_cluster / Matrix::rowSums(cells_cluster))*100,2)
+
+pheatmap::pheatmap(
+  mat = t(scaled_cM),
+  border_color = "black",display_numbers = TRUE,
+  cluster_rows = F,
+  cluster_cols = F,
+  cellwidth = size,
+  cellheight = size,
+  main = title)
+
 ```
 
 # Plotting for figure 6
 
 ## Prepare the dataframe
 ```{r}
-train <- cbind(condor_train$umap$expr_orig, condor_train$clustering$Phenograph_expr_orig_k_300[, c(1,3)])
+train <- cbind(condor_train$umap$expr_orig, 
+               condor_train$clustering$phenograph_expr_orig_k_150[, c(1,3)])
 
-train$type <- "train"
+train$type <- "original"
 
 test <- cbind(condor_test$umap$expr_orig, 
               condor_test$clustering$label_pred_fine,
@@ -296,17 +295,17 @@ test$Description <- NULL
 
 colnames(test) <- c("UMAP1", "UMAP2", "Phenograph", "metaclusters")
 
-test$type <- "test"
+test$type <- "predicted"
 
 vis_data <- rbind(train, test)
 ```
 
 # Overlap UMAP
 ```{r}
-vis_data$type <- factor(vis_data$type, levels = c("train", "test"))
+vis_data$type <- factor(vis_data$type, levels = c("original", "predicted"))
 ```
 
-```{r}
+```{r, fig.height=5, fig.width=5}
 ggplot(data = vis_data, aes(x = UMAP1, y = UMAP2, color = type, alpha = type, size = type)) +
   geom_point_rast() +
   scale_color_manual(values = c("gray", "#92278F")) +
@@ -317,7 +316,15 @@ ggplot(data = vis_data, aes(x = UMAP1, y = UMAP2, color = type, alpha = type, si
   ggtitle("Figure 6c - UMAP projected")
 ```
 
-```{r}
+```{r, fig.height=5, fig.width=8}
+cluster_palette <- c("#89C5DA", "#DA5724", "#74D944", "#CE50CA", "#3F4921", "#C0717C", "#CBD588", "#5F7FC7",
+                     "#673770", "#D3D93E", "#38333E", "#508578", "#D7C1B1", "#689030", "#AD6F3B", "#CD9BCD",
+                     "#D14285", "#6DDE88", "#652926", "#7FDCC0", "#C84248", "#8569D5", "#5E738F", "#D1A33D",
+                     "#8A7C64", "#599861", "#89C5DA", "#DA5724", "#74D944", "#CE50CA", "#3F4921", "#C0717C", "#CBD588", "#5F7FC7",
+                     "#673770", "#D3D93E", "#38333E", "#508578", "#D7C1B1", "#689030", "#AD6F3B", "#CD9BCD",
+                     "#D14285", "#6DDE88", "#652926", "#7FDCC0", "#C84248", "#8569D5", "#5E738F", "#D1A33D",
+                     "#8A7C64", "#599861")
+
 ggplot(data = vis_data, aes(x = UMAP1, y = UMAP2, color = metaclusters, alpha = type, size = type)) +
   geom_point_rast() +
   scale_color_manual(values = cluster_palette) +
@@ -328,7 +335,7 @@ ggplot(data = vis_data, aes(x = UMAP1, y = UMAP2, color = metaclusters, alpha = 
   ggtitle("Figure 6e - Predicted cell labels") + facet_wrap(~type)
 ```
 
-```{r}
+```{r, fig.height=5, fig.width=8}
 ggplot(data = vis_data, aes(x = UMAP1, y = UMAP2, color = Phenograph, alpha = type, size = type)) +
   geom_point_rast() +
   scale_color_manual(values = cluster_palette) +
@@ -336,19 +343,20 @@ ggplot(data = vis_data, aes(x = UMAP1, y = UMAP2, color = Phenograph, alpha = ty
   scale_size_manual(values = c(0.01, 0.1)) +
   theme_bw() +
   theme(aspect.ratio = 1, panel.grid = element_blank()) + 
-  ggtitle("Figure S9c - Predicted clusters") + facet_wrap(~type)
+  ggtitle("Figure S11a - Predicted clusters") + facet_wrap(~type)
 ```
 
 # Calculate LISI score
 ```{r}
-# devtools::install_github("immunogenomics/lisi")
-
 library(lisi)
 ```
 
 ## Prepare dataset
+
 ```{r}
-train_filt <- train[sample(rownames(train), 5000, replace = FALSE),]
+set.seed(1960)
+
+train_filt <- train[sample(rownames(train), 10000, replace = FALSE),]
 
 lisi_mat <- rbind(train_filt, test)
 
@@ -360,32 +368,31 @@ lisi_mat <- cbind(lisi_mat, res)
 ```
 
 # Visualization
-```{r}
+```{r, fig.height=5, fig.width=5}
 ggplot(data = lisi_mat, aes(y = lisi, x = "LISI")) + 
-  geom_jitter_rast(alpha = 0.3) +
+  geom_jitter_rast(alpha = 0.1) +
   geom_violin(alpha = 0.8) +
   theme_bw() +
   theme(aspect.ratio = 2, panel.grid = element_blank()) + ggtitle("Figure 6d - LISI global")
 ```
 
-```{r}
+```{r, fig.height=5, fig.width=7}
 ggplot(data = lisi_mat, aes(y = lisi, x = metaclusters, fill = metaclusters)) + 
-  geom_jitter_rast(alpha = 0.3) +
+  geom_jitter_rast(alpha = 0.1) +
   geom_violin() +
   theme_bw() +
   scale_fill_manual(values = cluster_palette) +
-  theme(aspect.ratio = 1/4, panel.grid = element_blank())+ ggtitle("Figure 6d - LISI metaclusters")
+  theme(aspect.ratio = 1/4, panel.grid = element_blank())+ ggtitle("Figure S11c - LISI metaclusters")
 ```
 
-```{r}
+```{r, fig.height=5, fig.width=10}
 ggplot(data = lisi_mat, aes(y = lisi, x = Phenograph, fill = Phenograph)) + 
-  geom_jitter_rast(alpha = 0.3) +
+  geom_jitter_rast(alpha = 0.1) +
   geom_violin() +
   theme_bw() +
   scale_fill_manual(values = cluster_palette) +
-  theme(aspect.ratio = 1/4, panel.grid = element_blank())+ ggtitle("Figure 6d - LISI clusters")
+  theme(aspect.ratio = 1/4, panel.grid = element_blank())+ ggtitle("Figure S11b - LISI clusters")
 ```
-
 
 # Session Info
 ```{r}

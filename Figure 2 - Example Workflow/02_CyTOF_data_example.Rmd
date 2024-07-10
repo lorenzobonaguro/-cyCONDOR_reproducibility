@@ -19,32 +19,22 @@ knitr::opts_chunk$set(
 
 # Loading required packages
 
-```{r setup}
-library(condor, quietly = T)
+```{r setup, message=FALSE, warning=F}
+library(cyCONDOR, quietly = T)
 library(ggplot2)
 library(ggsci)
 library(dplyr)
 library(ggpubr)
 ```
 
-```{r}
-cluster_palette <- c("#89C5DA", "#DA5724", "#74D944", "#CE50CA", "#3F4921", "#C0717C", "#CBD588", "#5F7FC7",
-                     "#673770", "#D3D93E", "#38333E", "#508578", "#D7C1B1", "#689030", "#AD6F3B", "#CD9BCD",
-                     "#D14285", "#6DDE88", "#652926", "#7FDCC0", "#C84248", "#8569D5", "#5E738F", "#D1A33D",
-                     "#8A7C64", "#599861", "#89C5DA", "#DA5724", "#74D944", "#CE50CA", "#3F4921", "#C0717C", "#CBD588", "#5F7FC7",
-                     "#673770", "#D3D93E", "#38333E", "#508578", "#D7C1B1", "#689030", "#AD6F3B", "#CD9BCD",
-                     "#D14285", "#6DDE88", "#652926", "#7FDCC0", "#C84248", "#8569D5", "#5E738F", "#D1A33D",
-                     "#8A7C64", "#599861")
-```
-
 # Loading the data
 
-```{r}
-condor <- prep_fcd(FCSpath = "./data/CyTOF_fcs/", 
-                    ceil = 5000, 
+```{r, message=F}
+condor <- prep_fcd(data_path = "./data/CyTOF_fcs/", 
+                    max_cell = 5000, 
                     useCSV = FALSE, 
-                    transformation = "a", 
-                    remove_param = c("Cell_length", "(Rh103)Di", "(Ce138)Di", "(La139)Di", "(Ce140)Di", "(Nd145)Di", "Ir191", "Ir193", "File Number", "InFile", "Time"), 
+                    transformation = "auto_logi", 
+                    remove_param = c("Cell_length", "(Rh103)Di", "(Ce138)Di", "(La139)Di", "(Ce140)Di", "(Nd145)Di", "Ir191", "Ir193", "File Number", "Time"), 
                     anno_table = "./data/CyTOF_Blood_RA_FR-FCM-Z293.csv", 
                     filename_col = "filename",
                     seed = 91)
@@ -91,57 +81,41 @@ condor <- runPhenograph(fcd = condor,
                         seed = 91)
 ```
 
-```{r}
-plot_marker(data = cbind(condor$umap$pca_orig, condor$clustering$Phenograph_pca_orig_k_60), 
-            param = "Phenograph", 
-            order = T, 
-            title = "Figure 2Dg - UMAP Phenograph Clustering", 
-            dim_red = "UMAP", 
-            facet_by_variable = FALSE)
+```{r, fig.height=5, fig.width=5}
+plot_dim_red(fcd = condor, 
+             expr_slot = "orig", 
+             reduction_method = "umap", 
+             reduction_slot = "pca_orig", 
+             cluster_slot = "phenograph_pca_orig_k_60",
+             param = "Phenograph", 
+             order = T, 
+             title = "Figure 2Dg - UMAP Phenograph Clustering", 
+             facet_by_variable = FALSE, 
+             raster = TRUE)
 ```
 
-```{r}
-plot_marker(data = cbind(condor$tSNE$pca_orig, condor$clustering$Phenograph_pca_orig_k_60), 
-            param = "Phenograph", 
-            order = T, 
-            title = "tSNE Phenograph Clustering", 
-            dim_red = "tSNE", 
-            facet_by_variable = FALSE)
+```{r, fig.height=5, fig.width=5}
+plot_dim_red(fcd = condor, 
+             expr_slot = "orig", 
+             reduction_method = "tSNE", 
+             reduction_slot = "pca_orig", 
+             cluster_slot = "phenograph_pca_orig_k_60",
+             param = "Phenograph", 
+             order = T, 
+             title = "Figure S3f - tSNE Phenograph Clustering", 
+             facet_by_variable = FALSE, 
+             raster = TRUE)
 ```
 
-```{r}
-data <- cbind(condor$umap$pca_orig, 
-              condor$tSNE$pca_orig, 
-              condor$anno$cell_anno, 
-              Phenograph = condor$clustering$Phenograph_pca_orig_k_60[,1])
-```
-
-```{r}
-ggplot(data = data, aes(x = UMAP1, y = UMAP2, color = Phenograph)) +
-  geom_point_rast(alpha = 0.2, size = 0.1) +
-  theme_bw() +
-  theme(aspect.ratio = 1, panel.grid = element_blank()) +
-  scale_color_manual(values = cluster_palette) + 
-  guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) + 
-  ggtitle("Figure 2Dg - UMAP Phenograph Clustering")
-```
-
-```{r}
-ggplot(data = data, aes(x = tSNE1, y = tSNE2, color = Phenograph)) +
-  geom_point_rast(alpha = 0.2, size = 0.1) +
-  theme_bw() +
-  theme(aspect.ratio = 1, panel.grid = element_blank()) +
-  scale_color_manual(values = cluster_palette) + 
-  guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) + 
-  ggtitle("Figure S3f - tSNE Phenograph Clustering")
-```
-
-```{r, fig.height=7}
-HM_markers(input = cbind(condor$expr$orig, condor$clustering$Phenograph_pca_orig_k_60), 
-           group = "Phenograph",
-           maxvalue = 2, 
-           title = "Figure S2g - Marker expression Phenograph clustering", 
-           cluster_rows = TRUE, cluster_cols = TRUE)
+```{r, fig.height=7, fig.width=7}
+plot_marker_HM(fcd = condor, 
+               expr_slot = "orig", 
+               cluster_slot = "phenograph_pca_orig_k_60", 
+               cluster_var = "Phenograph",
+               maxvalue = 2, 
+               title = "Figure S3g - Marker expression Phenograph clustering", 
+               cluster_rows = TRUE, 
+               cluster_cols = TRUE)
 ```
 
 # Session Info
