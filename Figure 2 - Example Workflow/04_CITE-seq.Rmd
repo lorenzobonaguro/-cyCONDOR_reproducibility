@@ -1,5 +1,5 @@
 ---
-title: "Figure 2.3 - Spectral Flow example dataset"
+title: "Figure 2.4 -CITE-seq example dataset"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{condor_workflow}
@@ -39,7 +39,8 @@ condor <- prep_fcd(data_path = "./data/CITE-seq/",
                     anno_table = "./data/CITE-seq.csv", 
                     filename_col = "filename", 
                     separator_fc_csv = ",",
-                    seed = 91)
+                    seed = 91, 
+                    verbose = TRUE)
 ```
 
 ```{r}
@@ -91,7 +92,7 @@ plot_dim_red(fcd = condor,
              cluster_slot = "phenograph_pca_orig_k_30",
              param = "Phenograph", 
              order = T, 
-             title = "Figure 2h - UMAP Phenograph Clustering", 
+             title = "Figure 2i - UMAP Phenograph Clustering", 
              facet_by_variable = FALSE, 
              raster = TRUE)
 ```
@@ -104,7 +105,7 @@ plot_dim_red(fcd = condor,
              cluster_slot = "phenograph_pca_orig_k_30",
              param = "Phenograph", 
              order = T, 
-             title = "Figure S3h - tSNE Phenograph Clustering", 
+             title = "Figure S3j - tSNE Phenograph Clustering", 
              facet_by_variable = FALSE, 
              raster = TRUE)
 ```
@@ -116,7 +117,7 @@ plot_marker_HM(fcd = condor,
                cluster_slot = "phenograph_pca_orig_k_30", 
                cluster_var = "Phenograph",
                maxvalue = 2, 
-               title = "Figure S2i - Marker expression Phenograph clustering", 
+               title = "Figure S2k - Marker expression Phenograph clustering", 
                cluster_rows = TRUE, 
                cluster_cols = TRUE)
 ```

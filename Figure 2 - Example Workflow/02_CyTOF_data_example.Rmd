@@ -37,7 +37,8 @@ condor <- prep_fcd(data_path = "./data/CyTOF_fcs/",
                     remove_param = c("Cell_length", "(Rh103)Di", "(Ce138)Di", "(La139)Di", "(Ce140)Di", "(Nd145)Di", "Ir191", "Ir193", "File Number", "Time"), 
                     anno_table = "./data/CyTOF_Blood_RA_FR-FCM-Z293.csv", 
                     filename_col = "filename",
-                    seed = 91)
+                    seed = 91, 
+                    verbose = TRUE)
 ```
 
 ```{r}
@@ -89,7 +90,7 @@ plot_dim_red(fcd = condor,
              cluster_slot = "phenograph_pca_orig_k_60",
              param = "Phenograph", 
              order = T, 
-             title = "Figure 2Dg - UMAP Phenograph Clustering", 
+             title = "Figure 2g - UMAP Phenograph Clustering", 
              facet_by_variable = FALSE, 
              raster = TRUE)
 ```

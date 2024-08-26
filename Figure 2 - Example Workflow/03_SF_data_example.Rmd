@@ -36,7 +36,8 @@ condor <- prep_fcd(data_path = "./data/SF_fcs/",
                     remove_param = c("FJComp-AF-A", "FJComp-LIVE DEAD Blue-A", "SSC-B-A", "SSC-B-H", "FSC-H", "SSC-H", "Time"), 
                     anno_table = "./data/SF_Multi_FR-FCM-Z4NB_cleaned.csv", 
                     filename_col = "filename",
-                    seed = 91)
+                    seed = 91, 
+                    verbose = TRUE)
 ```
 
 ```{r}

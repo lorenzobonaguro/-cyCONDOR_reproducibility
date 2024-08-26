@@ -26,7 +26,8 @@ condor_train <- prep_fcd(data_path = "./data_and_envs/fcs_train/",
                         remove_param = c("FSC-H", "SSC-H", "FSC-W", "SSC-W", "Time", "live_dead"), 
                         anno_table = "./data_and_envs/metadata_train.csv", 
                         filename_col = "filename",
-                        seed = 91)
+                        seed = 91, 
+                        verbose = TRUE)
 ```
 
 ```{r}

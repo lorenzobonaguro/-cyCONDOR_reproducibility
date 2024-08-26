@@ -14,8 +14,8 @@ editor_options:
 ```{r}
 # install.packages("tictoc")
 
-library(condor)
-library(tictoc)
+library(cyCONDOR)
+# library(tictoc)
 library(reshape2)
 library(ggplot2)
 library(ggsci)
@@ -24,192 +24,192 @@ library(ggsci)
 
 # Loading the data
 ```{r}
-time_100 <- list()
-
-for (i in seq(1:10)) {
-  
-  tic()
-
-  condor <- prep_fcd(FCSpath = "./fcs/", 
-                     ceil = 100, 
-                     useCSV = FALSE, 
-                     transformation = "a", 
-                     remove_param = c("InFile"), 
-                     anno_table = "./FC_metadata.csv", 
-                     filename_col = "filename",
-                     seed = 91)
-
-  condor <- runPCA(fcd = condor, 
-                   data_slot = "orig", 
-                 seed = 91)
-
-  condor <- runUMAP(fcd = condor, 
-                  input_type = "pca", 
-                  data_slot = "orig", 
-                  seed = 91)
-
-  condor <- runPhenograph(fcd = condor, 
-                        input_type = "pca", 
-                        data_slot = "orig", 
-                        k = 30, 
-                        seed = 91)
-
-  time_100[[i]] <- toc()
-  
-}
+# time_100 <- list()
+# 
+# for (i in seq(1:10)) {
+#   
+#   tic()
+# 
+#   condor <- prep_fcd(FCSpath = "./fcs/", 
+#                      ceil = 100, 
+#                      useCSV = FALSE, 
+#                      transformation = "a", 
+#                      remove_param = c("InFile"), 
+#                      anno_table = "./FC_metadata.csv", 
+#                      filename_col = "filename",
+#                      seed = 91)
+# 
+#   condor <- runPCA(fcd = condor, 
+#                    data_slot = "orig", 
+#                  seed = 91)
+# 
+#   condor <- runUMAP(fcd = condor, 
+#                   input_type = "pca", 
+#                   data_slot = "orig", 
+#                   seed = 91)
+# 
+#   condor <- runPhenograph(fcd = condor, 
+#                         input_type = "pca", 
+#                         data_slot = "orig", 
+#                         k = 30, 
+#                         seed = 91)
+# 
+#   time_100[[i]] <- toc()
+#   
+# }
 ```
 
 ```{r}
-time_1000 <- list()
-
-for (i in seq(1:10)) {
-  
-  tic()
-
-  condor <- prep_fcd(FCSpath = "./fcs/", 
-                     ceil = 1000, 
-                     useCSV = FALSE, 
-                     transformation = "a", 
-                     remove_param = c("InFile"), 
-                     anno_table = "./FC_metadata.csv", 
-                     filename_col = "filename",
-                     seed = 91)
-
-  condor <- runPCA(fcd = condor, 
-                   data_slot = "orig", 
-                 seed = 91)
-
-  condor <- runUMAP(fcd = condor, 
-                  input_type = "pca", 
-                  data_slot = "orig", 
-                  seed = 91)
-
-  condor <- runPhenograph(fcd = condor, 
-                        input_type = "pca", 
-                        data_slot = "orig", 
-                        k = 30, 
-                        seed = 91)
-
-  time_1000[[i]] <- toc()
-  
-}
+# time_1000 <- list()
+# 
+# for (i in seq(1:10)) {
+#   
+#   tic()
+# 
+#   condor <- prep_fcd(FCSpath = "./fcs/", 
+#                      ceil = 1000, 
+#                      useCSV = FALSE, 
+#                      transformation = "a", 
+#                      remove_param = c("InFile"), 
+#                      anno_table = "./FC_metadata.csv", 
+#                      filename_col = "filename",
+#                      seed = 91)
+# 
+#   condor <- runPCA(fcd = condor, 
+#                    data_slot = "orig", 
+#                  seed = 91)
+# 
+#   condor <- runUMAP(fcd = condor, 
+#                   input_type = "pca", 
+#                   data_slot = "orig", 
+#                   seed = 91)
+# 
+#   condor <- runPhenograph(fcd = condor, 
+#                         input_type = "pca", 
+#                         data_slot = "orig", 
+#                         k = 30, 
+#                         seed = 91)
+# 
+#   time_1000[[i]] <- toc()
+#   
+# }
 ```
 
 ```{r}
-time_10000 <- list()
-
-for (i in seq(1:10)) {
-  
-  tic()
-
-  condor <- prep_fcd(FCSpath = "./fcs/", 
-                     ceil = 10000, 
-                     useCSV = FALSE, 
-                     transformation = "a", 
-                     remove_param = c("InFile"), 
-                     anno_table = "./FC_metadata.csv", 
-                     filename_col = "filename",
-                     seed = 91)
-
-  condor <- runPCA(fcd = condor, 
-                   data_slot = "orig", 
-                 seed = 91)
-
-  condor <- runUMAP(fcd = condor, 
-                  input_type = "pca", 
-                  data_slot = "orig", 
-                  seed = 91)
-
-  condor <- runPhenograph(fcd = condor, 
-                        input_type = "pca", 
-                        data_slot = "orig", 
-                        k = 30, 
-                        seed = 91)
-
-  time_10000[[i]] <- toc()
-  
-}
+# time_10000 <- list()
+# 
+# for (i in seq(1:10)) {
+#   
+#   tic()
+# 
+#   condor <- prep_fcd(FCSpath = "./fcs/", 
+#                      ceil = 10000, 
+#                      useCSV = FALSE, 
+#                      transformation = "a", 
+#                      remove_param = c("InFile"), 
+#                      anno_table = "./FC_metadata.csv", 
+#                      filename_col = "filename",
+#                      seed = 91)
+# 
+#   condor <- runPCA(fcd = condor, 
+#                    data_slot = "orig", 
+#                  seed = 91)
+# 
+#   condor <- runUMAP(fcd = condor, 
+#                   input_type = "pca", 
+#                   data_slot = "orig", 
+#                   seed = 91)
+# 
+#   condor <- runPhenograph(fcd = condor, 
+#                         input_type = "pca", 
+#                         data_slot = "orig", 
+#                         k = 30, 
+#                         seed = 91)
+# 
+#   time_10000[[i]] <- toc()
+#   
+# }
 ```
 
 ```{r}
-time_100000 <- list()
-
-for (i in seq(1:10)) {
-  
-  tic()
-
-  condor <- prep_fcd(FCSpath = "./fcs/", 
-                     ceil = 100000, 
-                     useCSV = FALSE, 
-                     transformation = "a", 
-                     remove_param = c("InFile"), 
-                     anno_table = "./FC_metadata.csv", 
-                     filename_col = "filename",
-                     seed = 91)
-
-  condor <- runPCA(fcd = condor, 
-                   data_slot = "orig", 
-                 seed = 91)
-
-  condor <- runUMAP(fcd = condor, 
-                  input_type = "pca", 
-                  data_slot = "orig", 
-                  seed = 91)
-
-  condor <- runPhenograph(fcd = condor, 
-                        input_type = "pca", 
-                        data_slot = "orig", 
-                        k = 30, 
-                        seed = 91)
-
-  time_100000[[i]] <- toc()
-  
-}
+# time_100000 <- list()
+# 
+# for (i in seq(1:10)) {
+#   
+#   tic()
+# 
+#   condor <- prep_fcd(FCSpath = "./fcs/", 
+#                      ceil = 100000, 
+#                      useCSV = FALSE, 
+#                      transformation = "a", 
+#                      remove_param = c("InFile"), 
+#                      anno_table = "./FC_metadata.csv", 
+#                      filename_col = "filename",
+#                      seed = 91)
+# 
+#   condor <- runPCA(fcd = condor, 
+#                    data_slot = "orig", 
+#                  seed = 91)
+# 
+#   condor <- runUMAP(fcd = condor, 
+#                   input_type = "pca", 
+#                   data_slot = "orig", 
+#                   seed = 91)
+# 
+#   condor <- runPhenograph(fcd = condor, 
+#                         input_type = "pca", 
+#                         data_slot = "orig", 
+#                         k = 30, 
+#                         seed = 91)
+# 
+#   time_100000[[i]] <- toc()
+#   
+# }
 ```
 
 ```{r}
-time_1000000 <- list()
-
-for (i in seq(1:10)) {
-  
-  tic()
-
-  condor <- prep_fcd(FCSpath = "./fcs/", 
-                     ceil = 1000000, 
-                     useCSV = FALSE, 
-                     transformation = "a", 
-                     remove_param = c("InFile"), 
-                     anno_table = "./FC_metadata.csv", 
-                     filename_col = "filename",
-                     seed = 91)
-
-  condor <- runPCA(fcd = condor, 
-                   data_slot = "orig", 
-                 seed = 91)
-
-  condor <- runUMAP(fcd = condor, 
-                  input_type = "pca", 
-                  data_slot = "orig", 
-                  seed = 91)
-
-  condor <- runPhenograph(fcd = condor, 
-                        input_type = "pca", 
-                        data_slot = "orig", 
-                        k = 30, 
-                        seed = 91)
-
-  time_1000000[[i]] <- toc()
-  
-}
+# time_1000000 <- list()
+# 
+# for (i in seq(1:10)) {
+#   
+#   tic()
+# 
+#   condor <- prep_fcd(FCSpath = "./fcs/", 
+#                      ceil = 1000000, 
+#                      useCSV = FALSE, 
+#                      transformation = "a", 
+#                      remove_param = c("InFile"), 
+#                      anno_table = "./FC_metadata.csv", 
+#                      filename_col = "filename",
+#                      seed = 91)
+# 
+#   condor <- runPCA(fcd = condor, 
+#                    data_slot = "orig", 
+#                  seed = 91)
+# 
+#   condor <- runUMAP(fcd = condor, 
+#                   input_type = "pca", 
+#                   data_slot = "orig", 
+#                   seed = 91)
+# 
+#   condor <- runPhenograph(fcd = condor, 
+#                         input_type = "pca", 
+#                         data_slot = "orig", 
+#                         k = 30, 
+#                         seed = 91)
+# 
+#   time_1000000[[i]] <- toc()
+#   
+# }
 ```
 
 ```{r}
-rm(condor, i)
+# rm(condor, i)
 ```
 
 # Save the enviroment
 ```{r}
-save.image(file = "./240206_Benchmark.RData")
+# save.image(file = "./240206_Benchmark.RData")
 
 load("./240206_Benchmark.RData")
 ```

@@ -34,7 +34,8 @@ condor <- prep_fcd(data_path = "./data/CureDem/all/",
                    remove_param = c("Time"), 
                    anno_table = "./data/CureDem/all.csv", 
                    filename_col = "filename",
-                   seed = 91)
+                   seed = 91, 
+                   verbose = TRUE)
 ```
 
 ```{r}
@@ -155,7 +156,7 @@ plot_dim_red(fcd = condor,
              cluster_slot = "phenograph_pca_orig_k_60",
              param = "Phenograph", 
              order = T, 
-             title = "Figure 2e - UMAP Phenograph clustering", 
+             title = "Figure 2d - UMAP Phenograph clustering", 
              facet_by_variable = FALSE, 
              raster = TRUE)
 ```

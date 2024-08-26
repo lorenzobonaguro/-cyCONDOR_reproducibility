@@ -22,7 +22,7 @@ dir <- "/data/analysis/data/Figure 1 - Overview/"
 ## Prepare cCONDOR output data
 ```{r}
 #load cyCONDOR data
-load("../data/2024-04-30_cyCONDOR_flowSOM_Benchmark.RData")
+load("../Revision Figures/benchmarking/R_objects/2024-04-30_cyCONDOR_flowSOM_Benchmark.RData")
 ```
 
 ```{r}
@@ -110,7 +110,7 @@ bm_melt
 ## Prepare CATALYST output data
 ```{r}
 #load data
-load("../data/2024-04-29_CATALYST_Benchmark.RData")
+load("../Revision Figures/benchmarking/R_objects/2024-04-29_CATALYST_Benchmark.RData")
 ```
 
 ```{r}
@@ -220,7 +220,7 @@ ggplot(input, aes(x = cell_count, y = time, color = workflow)) +
 ## Prepare cyCONDOR output data
 ```{r}
 #load cyCONDOR data
-load("../data/2024-04-12_cyCONDOR_Benchmark.RData")
+load("../Revision Figures/benchmarking/R_objects/2024-04-12_cyCONDOR_Benchmark.RData")
 ```
 
 ```{r}
@@ -308,7 +308,7 @@ data_cyCONDOR
 ## Prepare SPECTRE output data
 ```{r}
 #loaddata
-load("../data/2024-04-13_Spectre_Benchmark.RData")
+load("../Revision Figures/benchmarking/R_objects/2024-04-13_Spectre_Benchmark.RData")
 ```
 
 ```{r}

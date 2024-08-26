@@ -26,7 +26,8 @@ condor <- prep_fcd(data_path = "/home/user/data/Data/Figure 7 - Clinical Classif
                     remove_param = c("FSC-A","FSC-W","FSC-H","Time"), 
                     anno_table = "/home/user/data/Data/Figure 7 - Clinical Classifier/data_and_envs/CytoDX/fcs_info_train.csv", 
                     filename_col = "fcsName",
-                    seed = 91)
+                    seed = 91, 
+                    verbose = TRUE)
 ```
 
 ```{r}

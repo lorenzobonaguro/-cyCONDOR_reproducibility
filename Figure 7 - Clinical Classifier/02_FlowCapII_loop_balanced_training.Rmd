@@ -10,7 +10,7 @@ editor_options:
     wrap: 72
 ---
 
-The permutation was calculated with cyCONDOR v0.1.5. Nevertheless the code was updated to work with cyCONDOR v0.1.6 and the results of the first few permutation was evaluated for consistency with the old version. The metrix show here are explain in details in this nice wiki page https://en.wikipedia.org/wiki/Precision_and_recall.
+The permutation was calculated with cyCONDOR v0.1.5. Nevertheless the code was updated to work with cyCONDOR v0.2.0 and the results of the first few permutation was evaluated for consistency with the old version. The metrics show here are explain in details in this nice wiki page https://en.wikipedia.org/wiki/Precision_and_recall.
 
 ```{r setup}
 library(cyCONDOR, quietly = TRUE)

@@ -1,5 +1,5 @@
 ---
-title: "Figure 2.1 - Prepare Data Annotation"
+title: "Figure 5.1 - Differential Analysis"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{condor_workflow}
@@ -37,7 +37,8 @@ condor <- prep_fcd(data_path = "/home/user/data/Data/Figure 2 - Example Workflow
                     remove_param = c("FSC-H", "SSC-H", "FSC-W", "SSC-W", "Time", "InFile", "live_dead"), 
                     anno_table = "/home/user/data/Data/Figure 2 - Example Workflow/data/FC_metadata.csv", 
                     filename_col = "filename",
-                    seed = 91)
+                    seed = 91, 
+                    verbose = TRUE)
 ```
 
 ```{r}
@@ -222,7 +223,7 @@ results_ttest_metacluster <- frequency_t_test(fcd = condor,
 
 results_ttest_metacluster
 
-write.csv(results_ttest_metacluster, file = "../../Tables/240706_Table2_DA_cyCONDOR_metaclusters.csv")
+#write.csv(results_ttest_metacluster, file = "../../Tables/240706_Table2_DA_cyCONDOR_metaclusters.csv")
 ```
 
 ```{r}
@@ -237,7 +238,7 @@ results_ttest_cluster <- frequency_t_test(fcd = condor,
 
 results_ttest_cluster
 
-write.csv(results_ttest_cluster, file = "../../Tables/240706_Table1_DA_cyCONDOR_clusters.csv")
+#write.csv(results_ttest_cluster, file = "../../Tables/240706_Table1_DA_cyCONDOR_clusters.csv")
 ```
 
 # Differential expression
@@ -331,7 +332,7 @@ cluster_DA_results <- as.data.frame(diffcyt::topTable(res_DA, all = TRUE))
 
 cluster_DA_results
 
-write.csv(cluster_DA_results, file = "../../Tables/240706_Table3_DA_diffcyt_clusters.csv")
+#write.csv(cluster_DA_results, file = "../../Tables/240706_Table3_DA_diffcyt_clusters.csv")
 ```
 
 ## Metaclusters
@@ -407,7 +408,7 @@ metacluster_DA_results <- as.data.frame(diffcyt::topTable(res_DA, all = TRUE))
 
 metacluster_DA_results
 
-write.csv(metacluster_DA_results, file = "../../Tables/240706_Table4_DA_diffcyt_metaclusterclusters.csv")
+#write.csv(metacluster_DA_results, file = "../../Tables/240706_Table4_DA_diffcyt_metaclusterclusters.csv")
 ```
 
 ### Differential expression
@@ -439,7 +440,7 @@ res_metacluster <-as.data.frame(diffcyt::topTable(res_DS, all = TRUE))
 
 res_metacluster[1:10,]
 
-write.csv(res_metacluster, file = "../../Tables/240706_Table5_DE_diffcyt_metaclusters.csv")
+#write.csv(res_metacluster, file = "../../Tables/240706_Table5_DE_diffcyt_metaclusters.csv")
 ```
 
 ## Figure s8b
