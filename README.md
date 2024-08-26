@@ -7,13 +7,13 @@ To bridge this data analysis gap in HDC we developed cyCONDOR, an easy-to-use co
 
 
 ## Why this repository?
-This repository provides the original code used to prepared each panel of the manuscript, to ensure the reproducibility of the analysis we provide a docker image for and Rstudio session including all required dependencies and the *cyCONDOR* package (v. 0.1.4).
+This repository provides the original code used to prepare each panel of the manuscript, to ensure the reproducibility of the analysis we provide a docker image for an Rstudio session including all required dependencies and the *cyCONDOR* package (v. 0.2.0).
 
 ## How to use this repository
-We try to provide access to the analysis in the easiest possible way, the user can follow this few instructions and should be able to be up and running quickly. Withing each folder you can find all the scripts and data required the reproduce the analysis.  
+We try to provide access to the analysis in the easiest possible way, the user can follow this few instructions and should be able to be up and running quickly. Within each folder you can find all the scripts and data required to reproduce the analysis.  
 
 ### Requirements
-Some of the calculations, especially to reproduce Figure 3 can be quite memory demanding, we suggest a minimum of 32 Gb of system memory.
+Some of the calculations, can be quite memory demanding, we suggest a minimum of 32 Gb of system memory.
 - [Git](https://git-scm.com/)
 - [Docker](https://www.docker.com/)
 
@@ -27,12 +27,12 @@ cd cyCONDOR_reproducibility
 ```
 ### Download the Docker image and start the container
 ```
-docker pull lorenzobonaguro/condor:v014
+docker pull lorenzobonaguro/cycondor:v020
 ```
 
 ```sh
 # Run a container
-docker run -dp 8787:8787 -e USER=mariorossi -e PASSWORD=mariorossi --name rep_condor -v 'your_directory':/home/mariorossi/data/ lorenzobonaguro/condor:v014
+docker run -dp 8787:8787 -e USER=mariorossi -e PASSWORD=mariorossi --name rep_condor -v 'your_directory':/home/mariorossi/data/ lorenzobonaguro/cycondor:v020
 ```
 
 ### Open the RStudio session
